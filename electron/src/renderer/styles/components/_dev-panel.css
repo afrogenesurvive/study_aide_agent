@@ -1,0 +1,51 @@
+/* Developer panel: log stream, usage table, agent config editor. */
+
+.log-view {
+  flex: 1;
+  min-height: 320px;
+  max-height: calc(100vh - 260px);
+  overflow-y: auto;
+  padding: 8px var(--gap) var(--gap);
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-size: 0.8em;
+  line-height: 1.5;
+}
+
+.log-line {
+  display: grid;
+  grid-template-columns: 78px 110px 1fr;
+  gap: 8px;
+  padding: 1px 0;
+  border-bottom: 1px solid transparent;
+}
+
+.log-line:hover {
+  background: var(--surface-hover);
+}
+
+.log-line__time {
+  color: var(--text-muted);
+}
+
+.log-line__source {
+  color: var(--accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.log-line__message {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.log-line--warn .log-line__message {
+  color: var(--color-yellow);
+}
+
+.log-line--error .log-line__message {
+  color: var(--color-red);
+}
+
+.log-line--debug .log-line__message {
+  color: var(--text-muted);
+}

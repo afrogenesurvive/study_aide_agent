@@ -1,0 +1,33 @@
+{
+  "_comment": "Example of the user config file. The real file is config.json in the app's per-user data directory (shown by Storage -> Locations in the app) and is gitignored. Edit it via Settings -> Configuration, or by hand while the app is closed. A key set here overrides both .env and the built-in defaults.",
+
+  "LLM_PROVIDER": "deepseek",
+  "DEEPSEEK_MODEL": "deepseek-v4-flash",
+  "LLM_TEMPERATURE": "0.1",
+
+  "NOTIFY_CHANNELS": "email,calendar,push",
+  "NOTIFY_AUTOSEND": "false",
+  "REMINDER_OFFSETS": "1440,60,10",
+  "DAILY_DIGEST_TIME": "08:00",
+  "WEEKLY_REVIEW_DAY": "saturday",
+
+  "DAILY_STUDY_TARGET": "90",
+  "SESSION_LENGTH": "20",
+  "BREAK_LENGTH": "5",
+  "TIMEZONE": "America/Jamaica",
+  "EXAM_DATE": "",
+
+  "FSRS_DESIRED_RETENTION": "0.9",
+  "FSRS_MAX_INTERVAL": "365",
+  "NEW_CARDS_PER_DAY": "20",
+
+  "SYLLABUS_IMPORT_FORMAT": "auto",
+
+  "APPEARANCE_THEME": "system",
+  "APPEARANCE_ACCENT_COLOR": "#2f81f7",
+  "APPEARANCE_FONT_SIZE": "medium",
+  "APPEARANCE_SIDEBAR_WIDTH": "260",
+
+  "LOG_LEVEL": "info",
+  "USAGE_TRACKING_ENABLED": "true"
+}

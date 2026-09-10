@@ -6,7 +6,12 @@
 > system**, and an **Electron UI/config/LLM-provider foundation** derived from
 > `ai_transcription_agent` + `copilot_agentic_task_helper`.
 
-**Status:** planning draft · **Date:** 2026-09-09 · **Target:** A-level Math / Chemistry / Biology
+**Status:** phases 0–1 implemented · **Date:** 2026-09-10 (plan v2: 2026-09-09) · **Target:** A-level Math / Chemistry / Biology
+
+> **Progress:** Phase 0 (foundation) and Phase 1 (data + syllabus) are built and
+> verified. See [`CHANGELOG.md`](CHANGELOG.md) for what shipped and
+> [`development_environment.md`](development_environment.md) for local setup.
+> Implementation notes and the deviations from this plan are at the end of §10.
 
 ---
 
@@ -477,15 +482,24 @@ Extends v1; **new** tables marked ★.
 
 ## 10. Revised execution plan
 
-### Phase 0 — Foundation (Days 1–3)
+### Phase 0 — Foundation (Days 1–3) ✅ **complete**
 - Scaffold Electron + React + Vite on the `ai_transcription_agent` shell (`App.tsx`, appearance, styles).
 - `config.ts` 3-layer config + `getChildEnv()`; `preload.ts` contextBridge; `ui-state.ts`.
 - `.gitignore` + `agent-config/*.template.*` + `shared/config-loader.cjs`.
 
-### Phase 1 — Data & syllabus (Days 4–8)
+Implemented as planned, plus four working panels (Appearance, Configuration,
+Developer, Storage) rather than placeholders, so the config and logging plumbing
+is exercised end to end. The screenshot/guide/tray features are deferred to
+phase 7.
+
+### Phase 1 — Data & syllabus (Days 4–8) ✅ **complete**
 - SQLite schema (§7) + migrations; `services/database/`.
 - `services/syllabus/`: parsers (JSON/CSV/MD/paste/PDF), canonical schema, diff/merge/overwrite, rollback.
 - **Syllabus panel** (`Active` / `Imports` / `Coverage` / `Editor`) with import + diff preview.
+
+All three deliverables landed, with coverage analytics computed from topic status
+and valence (so it works before FSRS review data exists). DOCX joined the parser
+set alongside PDF.
 
 ### Phase 2 — FSRS & scheduling (Days 9–12)
 - `ts-fsrs` integration; review view with ratings; valence tagging.
@@ -515,6 +529,25 @@ Extends v1; **new** tables marked ★.
 ### Phase 7 — Polish & package (Days 32–36)
 - Storage panel, Dev panel (logs/usage), auto-updater, restore-defaults.
 - End-to-end test with a real syllabus; package `.dmg` / `.exe` / `AppImage`.
+
+### Implementation notes — deviations from this plan
+
+Written up in full in [`CHANGELOG.md`](CHANGELOG.md); the structural ones:
+
+| Plan says | As built | Why |
+| :--- | :--- | :--- |
+| `services/` at the repo root | `electron/services/` | The main process is compiled by `tsc` with `rootDir: src/main`; a root-level `services/` either breaks that or forces a convoluted output path. |
+| — (unspecified) | Main entry is `dist/src/main/index.js` | Follows from `rootDir: "."` / `outDir: "dist"` so `services/` can be imported by the main process. |
+| Migrations unspecified | TypeScript modules exporting SQL strings, not `.sql` files | `tsc` does not copy non-TS assets into `dist`, so `.sql` files would be missing in a packaged build. |
+| `syllabus_imports` stores `raw_payload` + `diff_json` | Also stores `prior_snapshot_json` | Raw + diff alone cannot undo an import — you need the pre-import state. |
+| `usage-tracker.mjs` records tokens/cost per call | Retargeted to a sink hook writing the local `llm_usage` table | The reference implementation pushes to an external telemetry service; a local-first app should not. |
+| `ts-fsrs` (phase 2) | Driver choice made now: `node:sqlite` | Electron 43 bundles Node 24.20, so the built-in module is available with no native rebuild and no ABI/notarisation risk. |
+| SQLite driver in the main process | `services/database/db.ts` is a thin facade | Keeps a swap to `better-sqlite3` a one-file change if `node:sqlite` proves limiting. |
+
+Two smaller decisions: no tray icon (would require shipping an asset; deferred to
+phase 7) and the Appearance/Configuration/Developer/Storage panels were built for
+real in phase 0 rather than stubbed, since they are what makes the config and
+logging layers verifiable.
 
 ---
 

@@ -1,0 +1,93 @@
+{
+  "_note": "Cross-subject themes for overlap-based interleaving. Seeded by hand here; later phases derive candidates by matching topic titles across the three syllabi and then merge them with these entries. `source: \"seeded\"` marks hand-written rows so a future derivation pass can tell them apart.",
+  "themes": [
+    {
+      "theme": "EQUILIBRIUM",
+      "source": "seeded",
+      "connections": [
+        {
+          "subject": "chemistry",
+          "concept": "Le Chatelier's principle, Kc and Kp",
+          "topics": ["7", "25"]
+        },
+        {
+          "subject": "math",
+          "concept": "Solving equations, logarithms and exponential functions",
+          "topics": ["2.2", "1.2"]
+        },
+        {
+          "subject": "biology",
+          "concept": "Homeostasis as dynamic equilibrium",
+          "topics": ["14"]
+        }
+      ],
+      "commonPrinciple": "Systems under stress shift to oppose the disturbance and settle at a new steady state."
+    },
+    {
+      "theme": "EXPONENTIAL CHANGE",
+      "source": "seeded",
+      "connections": [
+        {
+          "subject": "chemistry",
+          "concept": "Reaction rates, half-life and first-order kinetics",
+          "topics": ["8", "26"]
+        },
+        {
+          "subject": "math",
+          "concept": "Exponential functions, logarithmic scales and differential equations",
+          "topics": ["2.2", "3.7"]
+        },
+        {
+          "subject": "biology",
+          "concept": "Bacterial growth curves and population growth",
+          "topics": ["18"]
+        }
+      ],
+      "commonPrinciple": "Quantities that change in proportion to their own size produce the same curve in every discipline."
+    },
+    {
+      "theme": "ENERGY",
+      "source": "seeded",
+      "connections": [
+        {
+          "subject": "chemistry",
+          "concept": "Enthalpy, entropy and Gibbs free energy",
+          "topics": ["5", "23"]
+        },
+        {
+          "subject": "math",
+          "concept": "Integration and rates of change",
+          "topics": ["1.8", "3.5"]
+        },
+        {
+          "subject": "biology",
+          "concept": "Respiration, photosynthesis and ATP coupling",
+          "topics": ["12", "13"]
+        }
+      ],
+      "commonPrinciple": "Energy is conserved, but its usable form is not — every transfer degrades it."
+    },
+    {
+      "theme": "STRUCTURE AND BONDING",
+      "source": "seeded",
+      "connections": [
+        {
+          "subject": "chemistry",
+          "concept": "Intermolecular forces, shapes and polarity",
+          "topics": ["3", "4"]
+        },
+        {
+          "subject": "math",
+          "concept": "Vectors and three-dimensional geometry",
+          "topics": ["3.6"]
+        },
+        {
+          "subject": "biology",
+          "concept": "Protein tertiary structure and enzyme active sites",
+          "topics": ["2", "3"]
+        }
+      ],
+      "commonPrinciple": "Function follows shape, and shape follows the geometry of the bonds holding it together."
+    }
+  ]
+}

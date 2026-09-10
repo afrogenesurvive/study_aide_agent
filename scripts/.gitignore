@@ -1,0 +1,2 @@
+# Private sanitize patterns are never committed.
+scripts/sanitize.private.mjs

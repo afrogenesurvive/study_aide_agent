@@ -1,0 +1,65 @@
+/* Bottom status bar and its clickable pills. */
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 12px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  font-size: 0.82em;
+  flex-shrink: 0;
+}
+
+.status-bar__group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.status-bar__group--right {
+  margin-left: auto;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  white-space: nowrap;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-pill:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.status-pill--ok {
+  color: var(--color-green);
+  border-color: color-mix(in srgb, var(--color-green) 40%, transparent);
+}
+
+.status-pill--warn {
+  color: var(--color-yellow);
+  border-color: color-mix(in srgb, var(--color-yellow) 40%, transparent);
+}
+
+.status-pill--bad {
+  color: var(--color-red);
+  border-color: color-mix(in srgb, var(--color-red) 40%, transparent);
+}

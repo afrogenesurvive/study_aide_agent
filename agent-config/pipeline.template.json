@@ -1,0 +1,130 @@
+{
+  "max_pipeline_steps": 20,
+  "max_retries": 3,
+  "retry_base_delay_ms": 4000,
+  "llm_context_window": 0,
+  "terminal_tools": ["gmail_send_message", "calendar_create_event"],
+  "pipelines": [
+    {
+      "name": "material-generation",
+      "label": "Material generation",
+      "description": "Mode A — turn syllabus topics into flashcards and quizzes. One batched LLM call per topic, cached to the local database. Everything pauses at the review gate before it is saved.",
+      "steps": [
+        {
+          "id": "step-0",
+          "toolName": "syllabus_list_topics",
+          "label": "Load syllabus topics",
+          "description": "Resolve the topic codes selected in the Generate panel against the active syllabus. Topics always come from the syllabus, never free-typed.",
+          "systemPromptTemplate": "",
+          "hintTemplate": "",
+          "enabled": true,
+          "isTerminal": false
+        },
+        {
+          "id": "step-1",
+          "toolName": "syllabus_get_overlay",
+          "label": "Attach overlay connections",
+          "description": "Look up cross-subject themes for each topic so generated cards carry the overlapping concepts from the other two subjects.",
+          "systemPromptTemplate": "",
+          "hintTemplate": "",
+          "enabled": true,
+          "isTerminal": false
+        },
+        {
+          "id": "step-2",
+          "toolName": "generate_flashcards",
+          "label": "Generate flashcards",
+          "description": "One batched call per topic producing question/answer pairs in the canonical flashcard shape.",
+          "systemPromptTemplate": "You are generating A-level study material. Stay strictly within the named syllabus topic. Prefer retrieval-practice questions over recognition prompts. Return JSON only.",
+          "hintTemplate": "Topic: {{topicCode}} — {{topicTitle}} ({{subject}}). Overlay: {{overlayThemes}}",
+          "enabled": true,
+          "isTerminal": false
+        },
+        {
+          "id": "step-3",
+          "toolName": "generate_quiz",
+          "label": "Generate quiz items",
+          "description": "Derive mixed-topic quiz items from the flashcards produced in the previous step. Algorithmic where possible so no extra tokens are spent.",
+          "systemPromptTemplate": "",
+          "hintTemplate": "",
+          "enabled": true,
+          "isTerminal": false
+        },
+        {
+          "id": "step-4",
+          "toolName": "review_gate",
+          "label": "Review before save",
+          "description": "Block until the user accepts, edits or rejects the generated material. Nothing reaches the database before this step clears.",
+          "systemPromptTemplate": "",
+          "hintTemplate": "",
+          "enabled": true,
+          "isTerminal": false
+        },
+        {
+          "id": "step-5",
+          "toolName": "materials_save",
+          "label": "Save to database",
+          "description": "Persist accepted cards, attaching them to their syllabus topic and recording the generation job for the Dev panel.",
+          "systemPromptTemplate": "",
+          "hintTemplate": "",
+          "enabled": true,
+          "isTerminal": true
+        }
+      ]
+    },
+    {
+      "name": "socratic",
+      "label": "Socratic dialogue",
+      "description": "Mode B — multi-turn fire-tending. The system prompt is grounded in the current topic code so questioning stays in scope.",
+      "steps": [
+        {
+          "id": "step-0",
+          "toolName": "syllabus_get_topic",
+          "label": "Ground in topic",
+          "description": "Load the current topic code, title and section to scope the conversation.",
+          "systemPromptTemplate": "",
+          "hintTemplate": "",
+          "enabled": true,
+          "isTerminal": false
+        },
+        {
+          "id": "step-1",
+          "toolName": "socratic_reply",
+          "label": "Respond with a question",
+          "description": "Answer only far enough to ask a better question. Never hand over a completed answer if the student is close.",
+          "systemPromptTemplate": "You are a Socratic fire-tender for A-level study. Ask, do not tell. Surface the student's reasoning, find the gap, and ask the next question that closes it. Keep replies under 120 words.",
+          "hintTemplate": "Current topic: {{topicCode}} — {{topicTitle}}",
+          "enabled": true,
+          "isTerminal": false
+        }
+      ]
+    },
+    {
+      "name": "weekly-review",
+      "label": "Weekly valence review",
+      "description": "Summarise the week: coverage delta, valence shifts and the topics that need attention next week.",
+      "steps": [
+        {
+          "id": "step-0",
+          "toolName": "analytics_weekly_digest",
+          "label": "Build the digest",
+          "description": "Compute coverage delta, retention and valence trends for the last seven days.",
+          "systemPromptTemplate": "",
+          "hintTemplate": "",
+          "enabled": true,
+          "isTerminal": false
+        },
+        {
+          "id": "step-1",
+          "toolName": "gmail_send_message",
+          "label": "Email the digest",
+          "description": "Send the weekly digest to the configured address. Held at the review gate unless NOTIFY_AUTOSEND is true.",
+          "systemPromptTemplate": "Write a short, plain-text weekly study digest. Lead with what improved, then what needs attention. No filler.",
+          "hintTemplate": "",
+          "enabled": true,
+          "isTerminal": true
+        }
+      ]
+    }
+  ]
+}

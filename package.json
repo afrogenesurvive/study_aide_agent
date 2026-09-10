@@ -1,0 +1,18 @@
+{
+  "name": "study-aide-agent",
+  "version": "0.0.2",
+  "private": true,
+  "description": "Study Aide — overlap-based interleaving, FSRS, valence tagging and Socratic dialogue for A-level Math, Chemistry and Biology.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "setup": "npm --prefix electron install",
+    "dev": "npm --prefix electron run dev",
+    "build": "npm --prefix electron run build",
+    "start": "npm --prefix electron run start",
+    "test": "npm --prefix electron run test",
+    "types": "npm --prefix electron run types"
+  }
+}

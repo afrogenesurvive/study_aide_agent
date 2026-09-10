@@ -1,0 +1,246 @@
+/* Syllabus panel: import flow, diff preview, coverage, editor. */
+
+.syllabus-active,
+.coverage-tab,
+.editor-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.section-block {
+  margin-bottom: 12px;
+}
+
+.section-block__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.section-block__toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+
+.section-block__title {
+  font-weight: 600;
+}
+
+.table--topics td {
+  padding: 3px 8px;
+}
+
+.table--topics .table__code {
+  width: 110px;
+}
+
+.table__status {
+  width: 140px;
+}
+
+.table__valence {
+  width: 110px;
+}
+
+.valence-row {
+  display: flex;
+  gap: 5px;
+}
+
+.valence {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  opacity: 0.35;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+.valence:hover {
+  opacity: 0.8;
+  transform: scale(1.12);
+}
+
+.valence--red {
+  background: var(--color-red);
+}
+
+.valence--yellow {
+  background: var(--color-yellow);
+}
+
+.valence--green {
+  background: var(--color-green);
+}
+
+.valence--active {
+  opacity: 1;
+  border-color: var(--text);
+}
+
+.valence-summary {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 0.9em;
+}
+
+.valence-stat--red {
+  color: var(--color-red);
+}
+
+.valence-stat--yellow {
+  color: var(--color-yellow);
+}
+
+.valence-stat--green {
+  color: var(--color-green);
+}
+
+.status-chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.85em;
+  border: 1px solid var(--border);
+}
+
+.status-chip--mastered {
+  color: var(--color-green);
+  border-color: color-mix(in srgb, var(--color-green) 40%, transparent);
+}
+
+.status-chip--learning {
+  color: var(--color-yellow);
+  border-color: color-mix(in srgb, var(--color-yellow) 40%, transparent);
+}
+
+.status-chip--introduced {
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
+.table__bar {
+  width: 180px;
+}
+
+/* ── import flow ─────────────────────────────────────────────────────────── */
+
+.imports-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.import-step {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+
+.step-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95em;
+  margin-bottom: 10px;
+}
+
+.step-number {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #ffffff;
+  font-size: 0.75em;
+}
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 26px;
+  margin-bottom: 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.dropzone:hover,
+.dropzone--active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  color: var(--text);
+}
+
+.diff-preview {
+  margin: 10px 0;
+}
+
+.diff-summary {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.diff-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  margin-bottom: 6px;
+}
+
+.diff-group summary {
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.diff-group--added summary {
+  color: var(--color-green);
+}
+
+.diff-group--changed summary {
+  color: var(--color-yellow);
+}
+
+.diff-group--removed summary {
+  color: var(--color-red);
+}
+
+.diff-list {
+  margin-top: 6px;
+}
+
+.diff-list li {
+  display: flex;
+  gap: 10px;
+  padding: 2px 0;
+  font-size: 0.86em;
+  align-items: baseline;
+}
+
+.table--editor td {
+  padding: 3px 6px;
+}
+
+.editor-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.add-topic {
+  margin-bottom: 12px;
+}

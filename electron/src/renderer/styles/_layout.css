@@ -1,0 +1,121 @@
+/*
+ * App shell layout.
+ *
+ * Fallback token values live here so the window renders correctly during the
+ * first paint, before `applyAppearance()` sets the real ones from config.
+ */
+
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --surface-hover: #1c2333;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #2f81f7;
+  --accent-hover: #2f81f7cc;
+  --accent-border: #2f81f744;
+  --sidebar-width: 260px;
+  --radius: 8px;
+  --radius-sm: 6px;
+  --gap: 16px;
+  --color-red: #f85149;
+  --color-yellow: #d29922;
+  --color-green: #3fb950;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.sidebar {
+  position: relative;
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 8px;
+  overflow-y: auto;
+}
+
+.sidebar-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 5;
+}
+
+.sidebar-resize-handle:hover {
+  background: var(--accent-border);
+}
+
+.sidebar-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  text-align: left;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.sidebar-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.sidebar-btn--active {
+  background: var(--accent-border);
+  color: var(--text);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.sidebar-btn__label {
+  font-size: 0.92em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 8px 6px;
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: var(--gap);
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.mono-note {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  font-size: 0.85em;
+}

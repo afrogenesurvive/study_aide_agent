@@ -1,0 +1,178 @@
+[
+  {
+    "name": "syllabus_list_topics",
+    "description": "List topics for a syllabus, optionally filtered by subject, section or status. Read-only.",
+    "terminal": false,
+    "handler": "direct",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "syllabusId": { "type": "number", "description": "Defaults to the active syllabus." },
+        "subject": { "type": "string", "enum": ["math", "chemistry", "biology"] },
+        "status": {
+          "type": "string",
+          "enum": ["not_started", "introduced", "learning", "mastered"]
+        },
+        "includeArchived": { "type": "boolean", "default": false }
+      }
+    }
+  },
+  {
+    "name": "syllabus_get_topic",
+    "description": "Fetch a single syllabus topic by code. Read-only.",
+    "terminal": false,
+    "handler": "direct",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "syllabusId": { "type": "number" }
+      },
+      "required": ["code"]
+    }
+  },
+  {
+    "name": "syllabus_get_overlay",
+    "description": "Return the cross-subject overlay themes and connected concepts for a topic. Read-only.",
+    "terminal": false,
+    "handler": "direct",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "theme": { "type": "string" }
+      }
+    }
+  },
+  {
+    "name": "fsrs_list_due",
+    "description": "List flashcards due for review, grouped by syllabus topic. Read-only.",
+    "terminal": false,
+    "handler": "direct",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "limit": { "type": "number", "default": 50 },
+        "subject": { "type": "string", "enum": ["math", "chemistry", "biology"] }
+      }
+    }
+  },
+  {
+    "name": "fsrs_rate_card",
+    "description": "Apply a review rating to a flashcard and reschedule it with FSRS.",
+    "terminal": false,
+    "handler": "direct",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "flashcardId": { "type": "number" },
+        "rating": { "type": "string", "enum": ["again", "hard", "good", "easy"] },
+        "responseTimeMs": { "type": "number" }
+      },
+      "required": ["flashcardId", "rating"]
+    }
+  },
+  {
+    "name": "analytics_weekly_digest",
+    "description": "Compute coverage, retention and valence trends for the trailing week. Read-only.",
+    "terminal": false,
+    "handler": "direct",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "days": { "type": "number", "default": 7 }
+      }
+    }
+  },
+  {
+    "name": "gmail_list_messages",
+    "description": "Search the connected Gmail account. Read-only — safe for autonomous runs.",
+    "terminal": false,
+    "handler": "bridge",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query": { "type": "string" },
+        "maxResults": { "type": "number", "default": 10 }
+      }
+    }
+  },
+  {
+    "name": "gmail_get_message",
+    "description": "Fetch a single Gmail message by id. Read-only.",
+    "terminal": false,
+    "handler": "bridge",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "format": { "type": "string", "enum": ["full", "metadata"], "default": "full" }
+      },
+      "required": ["id"]
+    }
+  },
+  {
+    "name": "gmail_send_message",
+    "description": "Send an email. Terminal and irreversible — always requires the review gate unless NOTIFY_AUTOSEND is true.",
+    "terminal": true,
+    "handler": "bridge",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "to": { "type": "string" },
+        "subject": { "type": "string" },
+        "body": { "type": "string" }
+      },
+      "required": ["to", "subject", "body"]
+    }
+  },
+  {
+    "name": "calendar_list_events",
+    "description": "List calendar events in a time window. Read-only.",
+    "terminal": false,
+    "handler": "bridge",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "calendarId": { "type": "string", "default": "primary" },
+        "timeMin": { "type": "string" },
+        "timeMax": { "type": "string" },
+        "maxResults": { "type": "number", "default": 20 }
+      }
+    }
+  },
+  {
+    "name": "calendar_create_event",
+    "description": "Create a calendar event (study block or exam countdown). Terminal — requires the review gate.",
+    "terminal": true,
+    "handler": "bridge",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "summary": { "type": "string" },
+        "start": { "type": "string" },
+        "end": { "type": "string" },
+        "description": { "type": "string" },
+        "recurrence": { "type": "array", "items": { "type": "string" } },
+        "transparency": { "type": "string", "enum": ["opaque", "transparent"] }
+      },
+      "required": ["summary", "start", "end"]
+    }
+  },
+  {
+    "name": "calendar_create_task",
+    "description": "Add an item to Google Tasks for today's plan.",
+    "terminal": false,
+    "handler": "bridge",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "notes": { "type": "string" },
+        "due": { "type": "string", "description": "RFC 3339 timestamp." },
+        "tasklistId": { "type": "string", "default": "@default" }
+      },
+      "required": ["title"]
+    }
+  }
+]

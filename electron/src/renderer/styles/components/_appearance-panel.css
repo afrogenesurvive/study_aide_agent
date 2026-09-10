@@ -1,0 +1,9 @@
+/* Appearance panel specifics. */
+
+.swatch {
+  transition: transform 0.1s ease, border-color 0.1s ease;
+}
+
+.swatch:hover {
+  transform: scale(1.1);
+}

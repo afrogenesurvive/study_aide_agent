@@ -1,0 +1,9 @@
+/* Configuration panel specifics. */
+
+.panel .fieldset .field-grid {
+  margin-top: 8px;
+}
+
+.source-badge {
+  font-variant-numeric: tabular-nums;
+}

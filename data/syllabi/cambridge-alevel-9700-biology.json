@@ -1,0 +1,28 @@
+{
+  "subject": "biology",
+  "board": "cambridge",
+  "level": "a-level",
+  "title": "Cambridge International A Level Biology (9700)",
+  "_note": "REPRESENTATIVE OUTLINE — topic headings only, not the official specification. Replace via Syllabus → Imports.",
+  "topics": [
+    { "code": "1", "title": "Cell structure", "section": "AS Level", "estHours": 8 },
+    { "code": "2", "title": "Biological molecules", "section": "AS Level", "estHours": 10 },
+    { "code": "3", "title": "Enzymes", "section": "AS Level", "estHours": 8 },
+    { "code": "4", "title": "Cell membranes and transport", "section": "AS Level", "estHours": 8 },
+    { "code": "5", "title": "The mitotic cell cycle", "section": "AS Level", "estHours": 8 },
+    { "code": "6", "title": "Nucleic acids and protein synthesis", "section": "AS Level", "estHours": 10 },
+    { "code": "7", "title": "Transport in plants", "section": "AS Level", "estHours": 8 },
+    { "code": "8", "title": "Transport in mammals", "section": "AS Level", "estHours": 10 },
+    { "code": "9", "title": "Gas exchange", "section": "AS Level", "estHours": 8 },
+    { "code": "10", "title": "Infectious disease", "section": "AS Level", "estHours": 8 },
+    { "code": "11", "title": "Immunity", "section": "AS Level", "estHours": 8 },
+    { "code": "12", "title": "Energy and respiration", "section": "A Level", "estHours": 10 },
+    { "code": "13", "title": "Photosynthesis", "section": "A Level", "estHours": 10 },
+    { "code": "14", "title": "Homeostasis", "section": "A Level", "estHours": 10 },
+    { "code": "15", "title": "Control and coordination", "section": "A Level", "estHours": 10 },
+    { "code": "16", "title": "Inherited change", "section": "A Level", "estHours": 10 },
+    { "code": "17", "title": "Selection and evolution", "section": "A Level", "estHours": 8 },
+    { "code": "18", "title": "Biodiversity, classification and conservation", "section": "A Level", "estHours": 8 },
+    { "code": "19", "title": "Genetic technology", "section": "A Level", "estHours": 10 }
+  ]
+}
