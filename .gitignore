@@ -1,0 +1,81 @@
+# ── Node ──
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ── Environment / secrets ──
+.env
+.env.local
+.env.*.local
+config.json
+config.defaults.json
+
+# ── Google OAuth (NEVER commit) ──
+safe/
+safe/gmail-oauth2.json
+safe/calendars.json
+tokens/
+tokens/gmail-token.json
+
+# ── Logs ──
+logs/
+logs/**/*.jsonl
+*.log
+
+# ── Local data / DB ──
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+data/local/
+storage/
+queue/
+
+# ── Agent config (live files; *.template.* ARE committed) ──
+agent-config/pipeline.json
+agent-config/tools.json
+agent-config/system-prompt.md
+agent-config/.defaults/
+agent-config/.restart-flag
+
+# ── Build output ──
+dist/
+dist-resources/
+out/
+electron/dist/
+electron/dist-resources/
+electron/release/
+build/
+*.tsbuildinfo
+
+# ── Python (optional PDF/ML extraction) ──
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ── Editor / OS ──
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ── Test artifacts ──
+electron/test-results/
+electron/docs/
+coverage/
+playwright-report/
+
+# ── Personal / local-only ──
+notes.txt
+chat.json
+AGENTS.md
+copilot-instructions.md
+
+# ── MCP per-server deps ──
+mcp/*/node_modules/
