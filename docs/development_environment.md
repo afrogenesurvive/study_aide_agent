@@ -87,6 +87,11 @@ The main process compiles to `electron/dist/src/main/`, the renderer bundles to
 `electron/dist/renderer/`. `package.json` points at the compiled entry point —
 build before running.
 
+The renderer tsconfig defines an `@/*` path alias with no `baseUrl`. If you ever
+remove it, remove the matching `resolve.alias` in `vite.config.ts` too — leaving
+one without the other means the bundler resolves an import TypeScript cannot
+check.
+
 ## Manual verification
 
 ```bash

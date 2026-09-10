@@ -1,6 +1,6 @@
 {
   "name": "study-aide-shared",
-  "version": "0.0.2",
+  "version": "0.0.1",
   "private": true,
   "type": "module",
   "description": "Shared config loader, model provider, logger and usage tracker used by the Electron main process and standalone Node entry points."

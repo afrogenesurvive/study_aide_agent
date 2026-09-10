@@ -177,6 +177,84 @@ describe("syllabus import", () => {
     expect(child.parent_id).toBe(parent.id);
   });
 
+  it("keeps existing parent links when a re-import omits hierarchy", () => {
+    // Regression: an import that says nothing about hierarchy used to flatten
+    // the whole syllabus, because pass 1 wrote parent_id = NULL for every
+    // existing topic and pass 2 only restored the ones declared explicitly.
+    const linked = {
+      subject: "chemistry" as const,
+      board: "cambridge",
+      level: "a-level",
+      topics: [
+        { code: "PARENT", title: "Parent" },
+        { code: "CHILD", title: "Child", parent: "PARENT" },
+      ],
+    };
+
+    const created = apply(linked);
+    const syllabusId = created.syllabusId!;
+    const parent = repo.getTopicByCode(db, syllabusId, "PARENT")!;
+    expect(repo.getTopicByCode(db, syllabusId, "CHILD")!.parent_id).toBe(parent.id);
+
+    // Same topics, same codes — but this source has no parent information.
+    const second = apply({
+      subject: "chemistry",
+      board: "cambridge",
+      level: "a-level",
+      topics: [
+        { code: "PARENT", title: "Parent (revised)" },
+        { code: "CHILD", title: "Child" },
+      ],
+    });
+
+    expect(second.success).toBe(true);
+    expect(second.diff?.counts.changed).toBe(1); // only the renamed parent
+    expect(repo.getTopicByCode(db, syllabusId, "CHILD")!.parent_id).toBe(parent.id);
+    expect(repo.getTopicByCode(db, syllabusId, "PARENT")!.title).toBe("Parent (revised)");
+  });
+
+  it("reparents a topic when the incoming file changes its parent", () => {
+    const outline = (childParent: string) => ({
+      subject: "chemistry" as const,
+      board: "cambridge",
+      level: "a-level",
+      topics: [
+        { code: "A", title: "Unit A" },
+        { code: "B", title: "Unit B" },
+        { code: "CHILD", title: "Child", parent: childParent },
+      ],
+    });
+
+    const created = apply(outline("A"));
+    const syllabusId = created.syllabusId!;
+    const a = repo.getTopicByCode(db, syllabusId, "A")!;
+    const b = repo.getTopicByCode(db, syllabusId, "B")!;
+    expect(repo.getTopicByCode(db, syllabusId, "CHILD")!.parent_id).toBe(a.id);
+
+    apply(outline("B"));
+    expect(repo.getTopicByCode(db, syllabusId, "CHILD")!.parent_id).toBe(b.id);
+  });
+
+  it("inserts brand-new topics without a parent", () => {
+    const created = apply({
+      subject: "chemistry",
+      board: "cambridge",
+      level: "a-level",
+      topics: [{ code: "SOLO", title: "Standalone" }],
+    });
+    expect(repo.getTopicByCode(db, created.syllabusId!, "SOLO")!.parent_id).toBeNull();
+  });
+
+  it("ignores a parent code that does not exist", () => {
+    const created = apply({
+      subject: "chemistry",
+      board: "cambridge",
+      level: "a-level",
+      topics: [{ code: "CHILD", title: "Child", parent: "MISSING" }],
+    });
+    expect(repo.getTopicByCode(db, created.syllabusId!, "CHILD")!.parent_id).toBeNull();
+  });
+
   it("keeps two syllabi for the same subject apart", () => {
     apply(first);
     apply({ ...first, level: "as-level" });

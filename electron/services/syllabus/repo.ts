@@ -170,6 +170,10 @@ export interface TopicWrite {
   code: string;
   title: string;
   section?: string | null;
+  /**
+   * `undefined` means "the source is silent about hierarchy" and leaves any
+   * existing link alone on update; `null` means "explicitly detach".
+   */
   parentId?: number | null;
   orderIndex: number;
   estHours?: number | null;
@@ -181,9 +185,17 @@ export interface TopicWrite {
 /**
  * Insert or update a topic, keyed on `(syllabus_id, code)`.
  *
- * Progress columns (`status`, `valence`) are deliberately *not* touched on
- * update — that is the whole point of matching on code. Re-adding a previously
- * archived topic clears `archived_at`.
+ * The whole point of matching on code is that a new syllabus file updates the
+ * description without disturbing your work, so three columns are deliberately
+ * **not** overwritten:
+ *
+ *   - `status` / `valence` — your progress. Written only when supplied.
+ *   - `parent_id` — written only when supplied. `undefined` (source is silent)
+ *     leaves the existing link alone; `null` detaches. Without that
+ *     distinction, any import that omits hierarchy would silently flatten the
+ *     entire syllabus.
+ *
+ * Re-adding a previously archived topic clears `archived_at`.
  */
 export function upsertTopic(db: Database, syllabusId: number, topic: TopicWrite): number {
   const existing = getTopicByCode(db, syllabusId, topic.code);
@@ -209,18 +221,25 @@ export function upsertTopic(db: Database, syllabusId: number, topic: TopicWrite)
     return Number(result.lastInsertRowid);
   }
 
-  db.prepare(
-    `UPDATE syllabus_topics
-        SET title = ?, section = ?, order_index = ?, est_hours = ?, parent_id = ?,
-            archived_at = NULL, updated_at = datetime('now')
-      WHERE id = ?`,
-  ).run(
+  const sets = ["title = ?", "section = ?", "order_index = ?", "est_hours = ?"];
+  const values: unknown[] = [
     topic.title,
     topic.section ?? null,
     topic.orderIndex,
     topic.estHours ?? null,
-    topic.parentId ?? null,
-    existing.id,
+  ];
+
+  // Only touch parent_id when the caller actually said something about it.
+  if (topic.parentId !== undefined) {
+    sets.push("parent_id = ?");
+    values.push(topic.parentId);
+  }
+
+  sets.push("archived_at = NULL", "updated_at = datetime('now')");
+  values.push(existing.id);
+
+  db.prepare(`UPDATE syllabus_topics SET ${sets.join(", ")} WHERE id = ?`).run(
+    ...(values as never[]),
   );
   return existing.id;
 }

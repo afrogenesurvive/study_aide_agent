@@ -5,6 +5,31 @@ current branch. Newest first.
 
 ---
 
+## [0.0.1-1] — 2026-09-10
+
+Bug fixes for the syllabus importer and the Developer panel.
+
+### Fixed
+
+- **Re-importing a syllabus no longer loses topic hierarchy.** Previously, if an
+  imported file did not mention parent topics, every existing parent link was
+  cleared — silently flattening the syllabus. A file that is silent about
+  hierarchy now leaves what is there alone. Structure is still updated, and
+  topics are still re-parented, when the incoming file actually says so.
+- **Developer panel no longer re-reads token usage on every log line.** With the
+  Usage tab open, each incoming log entry triggered a fresh database read. The
+  tab now loads when you open it, and has a **Refresh** button.
+
+### Under the hood
+
+- Removed a deprecated TypeScript compiler option (`baseUrl`) that was reporting
+  an error, and corrected the `@/*` path alias to be relative so it still
+  resolves. No behaviour change.
+- Added four regression tests covering parent-link survival across re-imports
+  (97 tests passing, up from 93).
+
+---
+
 ## [0.0.2-1] — 2026-09-10
 
 First working build. Implements phases 0 and 1 of

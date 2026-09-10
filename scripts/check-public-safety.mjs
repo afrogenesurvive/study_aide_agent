@@ -152,24 +152,29 @@ console.log(
   `\nPublic-safety scan — ${commitSet.size} file(s) in commit set (${tracked.length} tracked total)`,
 );
 
+// NOTE: set `process.exitCode` rather than calling `process.exit()`.
+// When stdout is a pipe (CI, a captured terminal), `console.log` is
+// asynchronous, and `process.exit()` truncates the pending write — the scan
+// would report the right exit code while printing nothing, which is the worst
+// possible failure mode for a security gate.
 if (!blockers.length && !warns.length) {
   console.log("Clean — no secret values or sensitive paths found.\n");
-  process.exit(0);
-}
-
-if (blockers.length) {
-  console.log(`\n[BLOCKER] ${blockers.length} finding(s) — DO NOT COMMIT:`);
-  for (const finding of blockers) {
-    console.log(`  ${finding.file}:${finding.line} — ${finding.label}\n      ${finding.snippet}`);
+} else {
+  if (blockers.length) {
+    console.log(`\n[BLOCKER] ${blockers.length} finding(s) — DO NOT COMMIT:`);
+    for (const finding of blockers) {
+      console.log(`  ${finding.file}:${finding.line} — ${finding.label}\n      ${finding.snippet}`);
+    }
   }
-}
 
-if (warns.length) {
-  console.log(`\n[WARN] ${warns.length} finding(s) — review before proceeding:`);
-  for (const warning of warns) {
-    console.log(`  ${warning.file}:${warning.line} — ${warning.label}\n      ${warning.snippet}`);
+  if (warns.length) {
+    console.log(`\n[WARN] ${warns.length} finding(s) — review before proceeding:`);
+    for (const warning of warns) {
+      console.log(`  ${warning.file}:${warning.line} — ${warning.label}\n      ${warning.snippet}`);
+    }
   }
+
+  console.log();
 }
 
-console.log();
-process.exit(blockers.length ? 1 : 2);
+process.exitCode = blockers.length ? 1 : warns.length ? 2 : 0;

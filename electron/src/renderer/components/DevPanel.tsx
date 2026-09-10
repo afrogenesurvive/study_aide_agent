@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "../icons";
 import type { AgentConfigPayload, LlmUsageSummary, LogEntry, LogLevel } from "../../shared/ipc-types";
 
@@ -25,6 +25,10 @@ export function DevPanel({ onSaved }: { onSaved: (message: string) => void }) {
 
   pausedRef.current = paused;
 
+  const refreshUsage = useCallback(async () => {
+    setUsage((await window.electronAPI?.getUsageSummary()) ?? null);
+  }, []);
+
   useEffect(() => {
     void (async () => {
       const [initial, info] = await Promise.all([
@@ -48,8 +52,11 @@ export function DevPanel({ onSaved }: { onSaved: (message: string) => void }) {
 
   useEffect(() => {
     if (tab !== "usage") return;
-    void window.electronAPI?.getUsageSummary().then((summary) => setUsage(summary ?? null));
-  }, [tab, entries.length]);
+    // Depends on `tab` only. `entries` changes on every incoming log line, and
+    // including it here re-ran the usage aggregate continuously while the tab
+    // was open.
+    void refreshUsage();
+  }, [tab, refreshUsage]);
 
   useEffect(() => {
     if (tab !== "agent") return;
@@ -204,13 +211,17 @@ export function DevPanel({ onSaved }: { onSaved: (message: string) => void }) {
                   <p className="muted">No LLM calls recorded yet. Usage appears here as soon as the model is used.</p>
                 )}
                 <div className="toolbar">
+                  <button type="button" className="btn btn--small" onClick={() => void refreshUsage()}>
+                    <Icon name="refresh" size={13} />
+                    Refresh
+                  </button>
                   <button
                     type="button"
                     className="btn btn--small"
                     onClick={async () => {
                       const removed = await window.electronAPI?.clearUsage();
                       onSaved(`Cleared ${removed ?? 0} usage records.`);
-                      setUsage(await window.electronAPI?.getUsageSummary() ?? null);
+                      await refreshUsage();
                     }}
                   >
                     Clear usage history

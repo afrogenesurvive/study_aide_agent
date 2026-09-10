@@ -1,6 +1,6 @@
 {
   "name": "study-aide-electron",
-  "version": "0.0.2",
+  "version": "0.0.1",
   "private": true,
   "description": "Study Aide desktop shell (main + preload + renderer).",
   "license": "MIT",

@@ -145,17 +145,19 @@ export function applyImport(db: Database, args: ImportArgs): ImportCommitResult 
     }
 
     // Pass 2: wire up parent_id now that all codes exist.
+    //
+    // Only topics that explicitly declare a parent are touched. A source that is
+    // silent about hierarchy must not flatten one it never described — which is
+    // also why pass 1 leaves `parent_id` alone entirely.
     const idByCode = new Map<string, number>();
     for (const row of getTopics(db, syllabusId)) idByCode.set(row.code, row.id);
 
     const setParent = db.prepare("UPDATE syllabus_topics SET parent_id = ? WHERE id = ?");
-    const clearParent = db.prepare("UPDATE syllabus_topics SET parent_id = NULL WHERE id = ?");
     for (const topic of canonical.topics) {
+      if (!topic.parent) continue;
       const id = idByCode.get(topic.code);
-      if (!id) continue;
-      const parentId = topic.parent ? idByCode.get(topic.parent) : undefined;
-      if (parentId && parentId !== id) setParent.run(parentId, id);
-      else if (topic.parent === undefined) clearParent.run(id);
+      const parentId = idByCode.get(topic.parent);
+      if (id && parentId && parentId !== id) setParent.run(parentId, id);
     }
 
     // Archive topics that vanished from the new import (never hard-delete).
