@@ -92,6 +92,20 @@ remove it, remove the matching `resolve.alias` in `vite.config.ts` too — leavi
 one without the other means the bundler resolves an import TypeScript cannot
 check.
 
+## Scheduling data
+
+Review dates are stored in UTC, and the timezone in Settings is the single source
+of truth for what "today" means — so day boundaries, streaks and plan start times
+stay correct wherever you are, including across daylight-saving changes.
+
+Do not store a review date using SQLite's own `datetime('now')`. It carries no
+timezone marker, so it reads back as *local* time and silently shifts every
+scheduled interval by your UTC offset.
+
+The cross-subject overlay themes come from the bundled `data/overlap-map.json`,
+which is re-applied on every launch. Editing that file and restarting is enough to
+change which themes the scheduler can build a session around.
+
 ## Manual verification
 
 ```bash

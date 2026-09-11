@@ -5,6 +5,18 @@ current branch. Newest first.
 
 ---
 
+## [0.0.1-3] — 2026-09-11
+
+Documentation only — no application changes.
+
+- Updated the development environment guide for phase 2: current test and schema
+  figures, the startup log lines to expect, and a new note on how scheduling dates
+  are stored.
+- Recorded the remaining known gaps, including the parts of the app that are
+  covered by unit tests but have never been exercised at runtime.
+
+---
+
 ## [0.0.1-2] — 2026-09-10
 
 Phase 2 — spaced repetition and scheduling. The Dashboard, Review and Session
