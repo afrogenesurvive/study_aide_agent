@@ -79,3 +79,6 @@ copilot-instructions.md
 
 # ── MCP per-server deps ──
 mcp/*/node_modules/
+
+# ── Dev monitor config (local-only, per-machine) ──
+devmon.json
