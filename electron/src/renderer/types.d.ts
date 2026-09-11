@@ -26,6 +26,32 @@ import type {
   TopicStatus,
   Valence,
 } from "../shared/syllabus-types";
+import type {
+  CardInput,
+  CardPatch,
+  CardReviewRow,
+  DueCard,
+  DueSummary,
+  GradeResult,
+  Rating,
+  RatingPreview,
+  ReviewFilter,
+  ReviewStats,
+  SubjectDue,
+  TopicCardCount,
+  UndoResult,
+} from "../shared/review-types";
+import type {
+  PlanRequest,
+  PlanSnapshot,
+  ResolvedTheme,
+  SessionCompleteInput,
+  SessionStartResult,
+  SessionSummary,
+  StreakInfo,
+  StudySessionRow,
+  TodaySummary,
+} from "../shared/scheduler-types";
 
 /**
  * Hand-maintained mirror of `src/main/preload.ts`.
@@ -37,7 +63,6 @@ import type {
 
 export interface ElectronAPI {
   platform: string;
-  isPackaged: boolean;
 
   getVersion(): Promise<string>;
   getName(): Promise<string>;
@@ -130,7 +155,13 @@ export interface ElectronAPI {
   ): Promise<boolean>;
   updateTopic(
     topicId: number,
-    patch: { code?: string; title?: string; section?: string | null; estHours?: number | null },
+    patch: {
+      code?: string;
+      title?: string;
+      section?: string | null;
+      estHours?: number | null;
+      parentId?: number | null;
+    },
   ): Promise<{ success: boolean; error?: string }>;
   createTopic(
     syllabusId: number,
@@ -140,6 +171,44 @@ export interface ElectronAPI {
   restoreTopic(topicId: number): Promise<{ success: boolean }>;
   reorderTopic(topicId: number, orderIndex: number): Promise<{ success: boolean }>;
   deleteSyllabus(syllabusId: number): Promise<{ success: boolean }>;
+
+  getReviewSummary(): Promise<DueSummary>;
+  getDueBySubject(): Promise<SubjectDue[]>;
+  getReviewQueue(filter?: ReviewFilter): Promise<DueCard[]>;
+  getReviewStats(filter?: ReviewFilter): Promise<ReviewStats>;
+  listCards(filter?: ReviewFilter): Promise<DueCard[]>;
+  getCard(cardId: number): Promise<DueCard | null>;
+  previewCard(cardId: number): Promise<RatingPreview[] | null>;
+  rateCard(request: {
+    cardId: number;
+    rating: Rating;
+    sessionId?: number | null;
+    durationMs?: number | null;
+  }): Promise<GradeResult>;
+  undoReview(cardId: number): Promise<UndoResult>;
+  createCard(input: CardInput): Promise<{ success: boolean; cardId?: number; error?: string }>;
+  updateCard(cardId: number, patch: CardPatch): Promise<{ success: boolean; error?: string }>;
+  archiveCard(cardId: number, archived?: boolean): Promise<{ success: boolean }>;
+  setCardValence(cardId: number, valence: Valence | null): Promise<{ success: boolean }>;
+  deleteCard(cardId: number): Promise<{ success: boolean }>;
+  getCardHistory(cardId: number, limit?: number): Promise<CardReviewRow[]>;
+  getTopicCardCounts(syllabusId?: number): Promise<TopicCardCount[]>;
+
+  getThemes(syllabusId?: number): Promise<ResolvedTheme[]>;
+  getTheme(theme: string, syllabusId?: number): Promise<ResolvedTheme | null>;
+  getThemesForTopic(topicId: number, syllabusId?: number): Promise<ResolvedTheme[]>;
+  getPlan(request?: PlanRequest): Promise<PlanSnapshot>;
+  regeneratePlan(request?: PlanRequest): Promise<PlanSnapshot>;
+  completePlan(planId: number, completed?: boolean): Promise<boolean>;
+  getToday(): Promise<TodaySummary>;
+  getStreak(): Promise<StreakInfo>;
+
+  startSession(theme?: string | null): Promise<SessionStartResult>;
+  completeSession(input: SessionCompleteInput): Promise<SessionSummary>;
+  listSessions(limit?: number): Promise<StudySessionRow[]>;
+  getSession(sessionId: number): Promise<StudySessionRow | null>;
+  getSessionReviews(sessionId: number): Promise<CardReviewRow[]>;
+  getSessionReviewCount(sessionId: number): Promise<number>;
 
   showNotification(title: string, body: string): Promise<boolean>;
   onNotification(callback: (payload: { title: string; body: string }) => void): () => void;

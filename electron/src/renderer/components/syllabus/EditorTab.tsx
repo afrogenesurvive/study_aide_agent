@@ -61,6 +61,20 @@ export function EditorTab({
 
   const sections = [...new Set(detail.topics.map((topic) => topic.section ?? ""))].filter(Boolean);
 
+  /** id → parent id, so the parent picker can refuse to create a cycle. */
+  const parentOf = new Map(detail.topics.map((topic) => [topic.id, topic.parent_id]));
+
+  /** True when `ancestor` sits somewhere above `candidate` in the tree. */
+  const isDescendant = (candidate: number, ancestor: number): boolean => {
+    const seen = new Set<number>();
+    let current = parentOf.get(candidate) ?? null;
+    while (current !== null && !seen.has(current)) {
+      if (current === ancestor) return true;
+      seen.add(current);
+      current = parentOf.get(current) ?? null;
+    }
+    return false;
+  };
   return (
     <div className="editor-tab">
       <div className="toolbar">
@@ -173,6 +187,7 @@ export function EditorTab({
             <th className="table__code">Code</th>
             <th>Title</th>
             <th>Section</th>
+            <th>Parent</th>
             <th className="table__number">Est. h</th>
             <th>Status</th>
             <th>Valence</th>
@@ -206,6 +221,29 @@ export function EditorTab({
                     value={draft.section ?? topic.section ?? ""}
                     onChange={(event) => setDraft(topic.id, "section", event.target.value)}
                   />
+                </td>
+                <td>
+                  <select
+                    className="input input--compact"
+                    value={topic.parent_id ?? ""}
+                    aria-label={`Parent of ${topic.code}`}
+                    onChange={async (event) => {
+                      const value = event.target.value;
+                      await window.electronAPI?.updateTopic(topic.id, {
+                        parentId: value ? Number(value) : null,
+                      });
+                      await onChanged();
+                    }}
+                  >
+                    <option value="">— none —</option>
+                    {detail.topics
+                      .filter((candidate) => candidate.id !== topic.id && !isDescendant(candidate.id, topic.id))
+                      .map((candidate) => (
+                        <option key={candidate.id} value={candidate.id}>
+                          {candidate.code} · {candidate.title}
+                        </option>
+                      ))}
+                  </select>
                 </td>
                 <td>
                   <input

@@ -37,7 +37,15 @@ export interface ConfigFileResult {
   count?: number;
 }
 
-export type LogSource = "main" | "renderer" | "db" | "syllabus" | "llm" | "mcp";
+export type LogSource =
+  | "main"
+  | "renderer"
+  | "db"
+  | "syllabus"
+  | "llm"
+  | "mcp"
+  | "review"
+  | "scheduler";
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
 export interface LogEntry {

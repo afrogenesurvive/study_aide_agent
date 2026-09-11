@@ -17,10 +17,12 @@ export interface Migration {
 }
 
 import { migration001Initial } from "./001_initial";
+import { migration002FsrsAndScheduling } from "./002_fsrs_and_scheduling";
 
-export const MIGRATIONS: Migration[] = [migration001Initial].sort(
-  (a, b) => a.version - b.version,
-);
+export const MIGRATIONS: Migration[] = [
+  migration001Initial,
+  migration002FsrsAndScheduling,
+].sort((a, b) => a.version - b.version);
 
 export const LATEST_VERSION = MIGRATIONS.reduce((max, m) => Math.max(max, m.version), 0);
 
@@ -97,9 +99,14 @@ export function withTransaction<T>(db: Db, fn: () => T): T {
 
 let savepointCounter = 0;
 
-/** Reset the savepoint counter. Test-only. */
+/**
+ * Reset the savepoint counter.
+ *
+ * Called by the test helper before each case so savepoint names are identical
+ * from run to run, which makes a failing `ROLLBACK TO` reproducible.
+ */
 export function resetSavepointCounter(): void {
   savepointCounter = 0;
 }
 
-export { migration001Initial };
+export { migration001Initial, migration002FsrsAndScheduling };

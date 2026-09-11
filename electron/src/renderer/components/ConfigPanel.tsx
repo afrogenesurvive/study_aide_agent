@@ -57,6 +57,11 @@ const GROUPS: GroupSpec[] = [
       { key: "DAILY_STUDY_TARGET", label: "Daily target (minutes)", type: "number" },
       { key: "SESSION_LENGTH", label: "Block length (minutes)", type: "number" },
       { key: "BREAK_LENGTH", label: "Break length (minutes)", type: "number" },
+      {
+        key: "STUDY_START_TIME",
+        label: "Study start time",
+        hint: "24-hour HH:MM — anchors the day's plan.",
+      },
       { key: "TIMEZONE", label: "Timezone", hint: "IANA name, e.g. America/Jamaica." },
       { key: "EXAM_DATE", label: "Exam date", hint: "YYYY-MM-DD" },
     ],

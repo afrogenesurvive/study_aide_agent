@@ -1,0 +1,115 @@
+/* Session — the block stepper, the block clock and the overlay panel. */
+
+.session-stepper {
+  list-style: none;
+  margin: 14px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.session-step__button {
+  display: grid;
+  grid-template-columns: 44px 18px minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.session-step__button:hover {
+  background: var(--surface-hover);
+}
+
+.session-step__button--active {
+  border-color: var(--accent-border);
+  background: var(--surface);
+}
+
+.session-step__button--done {
+  color: var(--text-muted);
+}
+
+.session-step__button--pending {
+  opacity: 0.6;
+}
+
+.session-step__time {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  font-size: 0.9em;
+}
+
+.session-step__label {
+  min-width: 0;
+}
+
+.session-step__minutes {
+  color: var(--text-muted);
+  font-size: 0.9em;
+  text-align: right;
+}
+
+.session-block {
+  margin-top: 8px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.session-block__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--gap);
+}
+
+.session-block__title {
+  margin: 0 0 2px;
+  font-size: 1.1rem;
+}
+
+.session-clock {
+  min-width: 140px;
+  text-align: right;
+}
+
+.session-clock__value {
+  display: block;
+  font-size: 1.6rem;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 6px;
+}
+
+.session-clock__value--done {
+  color: var(--color-green);
+}
+
+.session-overlays {
+  margin-top: 14px;
+}
+
+.session-overlay {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.session-notes {
+  width: 100%;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.session-block .toolbar {
+  margin: 14px 0;
+}

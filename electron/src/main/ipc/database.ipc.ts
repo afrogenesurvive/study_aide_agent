@@ -119,10 +119,3 @@ function recordCounts(): Record<string, number> {
   }
   return counts;
 }
-
-/** Guard for handlers that need a live database. */
-export function requireDb() {
-  const db = getDb();
-  void getConfig();
-  return db;
-}

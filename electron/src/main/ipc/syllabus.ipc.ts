@@ -179,7 +179,14 @@ export function registerSyllabusIpc(): void {
     (
       _event,
       topicId: number,
-      patch: { code?: string; title?: string; section?: string | null; estHours?: number | null },
+      patch: {
+        code?: string;
+        title?: string;
+        section?: string | null;
+        estHours?: number | null;
+        /** `null` detaches the topic from its parent. */
+        parentId?: number | null;
+      },
     ) => {
       const db = getDb();
       const id = Number(topicId);

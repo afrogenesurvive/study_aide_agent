@@ -6,12 +6,13 @@
 > system**, and an **Electron UI/config/LLM-provider foundation** derived from
 > `ai_transcription_agent` + `copilot_agentic_task_helper`.
 
-**Status:** phases 0–1 implemented · **Date:** 2026-09-10 (plan v2: 2026-09-09) · **Target:** A-level Math / Chemistry / Biology
+**Status:** phases 0–2 implemented · **Date:** 2026-09-10 (plan v2: 2026-09-09) · **Target:** A-level Math / Chemistry / Biology
 
-> **Progress:** Phase 0 (foundation) and Phase 1 (data + syllabus) are built and
-> verified. See [`CHANGELOG.md`](CHANGELOG.md) for what shipped and
-> [`development_environment.md`](development_environment.md) for local setup.
-> Implementation notes and the deviations from this plan are at the end of §10.
+> **Progress:** Phases 0 (foundation), 1 (data + syllabus) and 2 (FSRS +
+> scheduling) are built and verified. See [`CHANGELOG.md`](CHANGELOG.md) for what
+> shipped and [`development_environment.md`](development_environment.md) for local
+> setup. Implementation notes and the deviations from this plan are at the end of
+> §10.
 
 ---
 
@@ -501,10 +502,28 @@ All three deliverables landed, with coverage analytics computed from topic statu
 and valence (so it works before FSRS review data exists). DOCX joined the parser
 set alongside PDF.
 
-### Phase 2 — FSRS & scheduling (Days 9–12)
+### Phase 2 — FSRS & scheduling (Days 9–12) ✅ **complete**
 - `ts-fsrs` integration; review view with ratings; valence tagging.
 - Interleaved scheduler driven by syllabus topics + overlay map.
 - **Dashboard** + **Session** views.
+
+All three deliverables landed, dispatched as 2A (schema + FSRS service), 2B
+(overlay themes), 2C (plan builder + session lifecycle), 2D (IPC), 2E (the three
+panels) and 2F (the phase 0–1 audit backlog), which the user asked to absorb into
+this phase.
+
+Notable refinements to the plan above:
+- The scheduler is **hybrid** rather than purely theme- or purely overdue-driven,
+  because each model fails on its own (see `services/scheduler/plan.ts`).
+- `resolveTheme` takes a **set** of syllabus ids and matches per subject as well
+  as per code — the plan's single-id signature could never report a theme
+  spanning three subjects, since each subject is its own `syllabus` row.
+- A new `STUDY_START_TIME` config key anchors the plan's times; the plan had no
+  such key, though §8's onboarding implies one.
+- `overlay_connections` is superseded by `overlay_themes` +
+  `overlay_theme_topics` and is no longer written.
+- Cards are authored by hand until phase 3 supplies generation.
+- The StatusBar activity pill was deferred; the Session panel carries the clock.
 
 ### Phase 3 — LLM provider & generation (Days 13–17)
 - `shared/model-provider.mjs` + `usage-tracker.mjs` adapted.

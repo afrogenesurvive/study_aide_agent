@@ -150,7 +150,13 @@ export function applyImport(db: Database, args: ImportArgs): ImportCommitResult 
     // silent about hierarchy must not flatten one it never described — which is
     // also why pass 1 leaves `parent_id` alone entirely.
     const idByCode = new Map<string, number>();
+    // A second, wider lookup for the archival pass below: it needs archived rows
+    // too, and doing that query per removed topic made this loop O(n²).
+    const rowByCode = new Map<string, { id: number; archived_at: string | null }>();
     for (const row of getTopics(db, syllabusId)) idByCode.set(row.code, row.id);
+    for (const row of getTopics(db, syllabusId, { includeArchived: true })) {
+      rowByCode.set(row.code, row);
+    }
 
     const setParent = db.prepare("UPDATE syllabus_topics SET parent_id = ? WHERE id = ?");
     for (const topic of canonical.topics) {
@@ -162,9 +168,7 @@ export function applyImport(db: Database, args: ImportArgs): ImportCommitResult 
 
     // Archive topics that vanished from the new import (never hard-delete).
     for (const entry of target.diff.removed) {
-      const row = getTopics(db, syllabusId, { includeArchived: true }).find(
-        (candidate) => candidate.code === entry.code,
-      );
+      const row = rowByCode.get(entry.code);
       if (row && !row.archived_at) archiveTopic(db, row.id);
     }
 

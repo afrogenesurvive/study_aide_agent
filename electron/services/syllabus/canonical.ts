@@ -211,6 +211,12 @@ export interface CanonicalDefaults {
   level?: string;
   examDate?: string;
   title?: string;
+  /**
+   * Derive `parent` links from `section` when the source codes sections but
+   * never links them to their children. Defaults to on; set false to keep a
+   * deliberately flat list.
+   */
+  deriveParents?: boolean;
 }
 
 export interface NormalizeResult {
@@ -284,15 +290,20 @@ export function normalizeCanonical(input: unknown, defaults: CanonicalDefaults =
     };
   }
 
+  const canonical: CanonicalSyllabus = {
+    subject,
+    board,
+    level,
+    ...(title ? { title } : {}),
+    ...(examDate ? { examDate } : {}),
+    topics,
+  };
+
+  // Most sources describe hierarchy with a section heading and never say which
+  // topic that section *is*. Without this pass those imports come in flat, and
+  // every section-only CSV or Markdown file loses the outline it clearly had.
   return {
-    canonical: {
-      subject,
-      board,
-      level,
-      ...(title ? { title } : {}),
-      ...(examDate ? { examDate } : {}),
-      topics,
-    },
+    canonical: defaults.deriveParents === false ? canonical : assignParents(canonical),
     warnings,
   };
 }
@@ -318,10 +329,3 @@ export function assignParents(canonical: CanonicalSyllabus): CanonicalSyllabus {
   };
 }
 
-/** A compact fingerprint, used to skip a no-op re-import cheaply. */
-export function canonicalFingerprint(canonical: CanonicalSyllabus): string {
-  const parts = canonical.topics
-    .map((topic) => `${topic.code}|${topic.title}|${topic.section ?? ""}|${topic.estHours ?? ""}`)
-    .sort();
-  return `${canonical.subject}/${canonical.board}/${canonical.level}#${parts.join(";")}`;
-}

@@ -24,7 +24,8 @@
     "papaparse": "^5.4.1",
     "pdfjs-dist": "^4.0.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "ts-fsrs": "^5.4.2"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
@@ -52,20 +53,35 @@
       "package.json"
     ],
     "extraResources": [
-      { "from": "../shared", "to": "shared" },
-      { "from": "../agent-config", "to": "agent-config" },
-      { "from": "../data", "to": "data" }
+      {
+        "from": "../shared",
+        "to": "shared"
+      },
+      {
+        "from": "../agent-config",
+        "to": "agent-config"
+      },
+      {
+        "from": "../data",
+        "to": "data"
+      }
     ],
     "mac": {
       "category": "public.app-category.education",
-      "target": ["dmg"]
+      "target": [
+        "dmg"
+      ]
     },
     "win": {
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     },
     "linux": {
       "category": "Education",
-      "target": ["AppImage"]
+      "target": [
+        "AppImage"
+      ]
     },
     "artifactName": "Study-Aide-${version}-${arch}.${ext}"
   }

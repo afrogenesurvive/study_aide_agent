@@ -1,0 +1,138 @@
+/* Review — the card loop, the library table and manual authoring. */
+
+.review-session__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.review-session__progress {
+  flex: 1;
+}
+
+.review-session__hint {
+  margin-top: 12px;
+}
+
+.review-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  min-height: 180px;
+}
+
+.review-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.review-card__question {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.5;
+}
+
+.review-card__answer {
+  margin: 0;
+  padding-top: 14px;
+  border-top: 1px dashed var(--border);
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.review-card__valence {
+  margin-top: 12px;
+}
+
+.review-ratings {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.review-rating {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.review-rating:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--accent-border);
+}
+
+.review-rating:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.review-rating__label {
+  font-weight: 600;
+}
+
+.review-rating__interval {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  font-size: 0.92em;
+}
+
+.review-rating__key {
+  font-size: 0.75em;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 5px;
+  margin-top: 4px;
+}
+
+.review-rating--again:hover:not(:disabled) {
+  border-color: var(--color-red);
+}
+
+.review-rating--hard:hover:not(:disabled) {
+  border-color: var(--color-yellow);
+}
+
+.review-rating--good:hover:not(:disabled) {
+  border-color: var(--color-green);
+}
+
+.review-rating--easy:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.card-browser__question {
+  max-width: 420px;
+}
+
+.card-browser__late {
+  color: var(--color-yellow);
+}
+
+.add-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 720px;
+}
+
+.add-card textarea.input {
+  resize: vertical;
+  font-family: inherit;
+}

@@ -4,7 +4,10 @@ import { StatusBar } from "./components/StatusBar";
 import { LoadingModal } from "./components/LoadingModal";
 import { AppearancePanel } from "./components/AppearancePanel";
 import { ConfigPanel } from "./components/ConfigPanel";
+import { DashboardPanel } from "./components/DashboardPanel";
 import { DevPanel } from "./components/DevPanel";
+import { ReviewPanel } from "./components/review/ReviewPanel";
+import { SessionPanel } from "./components/session/SessionPanel";
 import { StoragePanel } from "./components/StoragePanel";
 import { SyllabusPanel } from "./components/SyllabusPanel";
 import { Icon, type IconName } from "./icons";
@@ -161,12 +164,7 @@ export default function App() {
 
         <main className="app-main">
           {panel === "dashboard" ? (
-            <Placeholder
-              title="Dashboard"
-              icon="dashboard"
-              phase="Phase 2"
-              description="Today's plan, due cards, streak and coverage will land with the FSRS scheduler. Import a syllabus first — everything on this screen is derived from it."
-            />
+            <DashboardPanel onOpenPanel={setPanel} onSaved={(message) => notify(message)} />
           ) : null}
 
           {panel === "syllabus" ? <SyllabusPanel onSaved={(message) => notify(message)} /> : null}
@@ -180,23 +178,9 @@ export default function App() {
             />
           ) : null}
 
-          {panel === "review" ? (
-            <Placeholder
-              title="Review"
-              icon="review"
-              phase="Phase 2"
-              description="Card review with Again / Hard / Good / Easy ratings and valence tagging."
-            />
-          ) : null}
+          {panel === "review" ? <ReviewPanel onSaved={(message) => notify(message)} /> : null}
 
-          {panel === "session" ? (
-            <Placeholder
-              title="Session"
-              icon="session"
-              phase="Phase 2"
-              description="Timed interleaved study blocks: subject A → B → C through a shared theme, with the overlay connections surfaced as you go."
-            />
-          ) : null}
+          {panel === "session" ? <SessionPanel onSaved={(message) => notify(message)} /> : null}
 
           {panel === "socratic" ? (
             <Placeholder

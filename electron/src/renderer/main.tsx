@@ -14,6 +14,9 @@ import "./styles/components/_config-panel.css";
 import "./styles/components/_appearance-panel.css";
 import "./styles/components/_dev-panel.css";
 import "./styles/components/_syllabus.css";
+import "./styles/components/_dashboard.css";
+import "./styles/components/_review.css";
+import "./styles/components/_session.css";
 import "./styles/components/_notifications.css";
 
 /**

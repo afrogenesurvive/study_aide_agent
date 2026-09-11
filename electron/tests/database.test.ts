@@ -9,12 +9,15 @@ import { databaseStatus, listTables, tableColumns, type Database } from "../serv
 import { createTestDb } from "./helpers/test-db";
 
 const EXPECTED_TABLES = [
+  "card_reviews",
   "flashcards",
   "generation_jobs",
   "llm_usage",
   "notification_rules",
   "notifications",
   "overlay_connections",
+  "overlay_theme_topics",
+  "overlay_themes",
   "quiz_results",
   "schema_migrations",
   "study_plans",
@@ -42,13 +45,15 @@ describe("migrations", () => {
   });
 
   it("records the applied version", () => {
-    const rows = db.prepare("SELECT version, name FROM schema_migrations").all() as Array<{
+    const rows = db.prepare("SELECT version, name FROM schema_migrations ORDER BY version").all() as Array<{
       version: number;
       name: string;
     }>;
     expect(rows).toHaveLength(MIGRATIONS.length);
     expect(rows[0].version).toBe(1);
     expect(rows[0].name).toBe("initial_schema");
+    expect(rows[1].version).toBe(2);
+    expect(rows[1].name).toBe("fsrs_and_scheduling");
     expect(databaseStatus(db, ":memory:").schemaVersion).toBe(LATEST_VERSION);
   });
 
@@ -85,6 +90,46 @@ describe("migrations", () => {
     );
     insert.run();
     expect(() => insert.run()).toThrow();
+  });
+
+  it("gives flashcards the FSRS columns added by migration 002", () => {
+    const columns = tableColumns(db, "flashcards");
+    for (const column of [
+      "difficulty",
+      "stability",
+      "last_review",
+      "next_review",
+      "elapsed_days",
+      "scheduled_days",
+      "learning_steps",
+      "reps",
+      "lapses",
+      "last_rating",
+      "updated_at",
+    ]) {
+      expect(columns).toContain(column);
+    }
+  });
+
+  it("cascades review-log rows when a card is deleted", () => {
+    db.prepare("INSERT INTO flashcards (question, answer) VALUES ('Q', 'A')").run();
+    db.prepare(
+      `INSERT INTO card_reviews (flashcard_id, rating, reviewed_at, log_json)
+       VALUES (1, 1, '2026-09-10T12:00:00.000Z', '{}')`,
+    ).run();
+    db.prepare("DELETE FROM flashcards WHERE id = 1").run();
+    const count = db.prepare("SELECT COUNT(*) AS count FROM card_reviews").get() as {
+      count: number;
+    };
+    expect(Number(count.count)).toBe(0);
+  });
+
+  it("enforces one overlay connection per (theme, subject, topic_code)", () => {
+    const insert = db.prepare(
+      "INSERT INTO overlay_theme_topics (theme, subject, concept, topic_code) VALUES (?, ?, ?, ?)",
+    );
+    insert.run("EQUILIBRIUM", "chemistry", "Le Chatelier", "7");
+    expect(() => insert.run("EQUILIBRIUM", "chemistry", "A different concept", "7")).toThrow();
   });
 
   it("cascades topic deletion when a syllabus is removed", () => {

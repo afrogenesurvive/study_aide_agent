@@ -280,7 +280,14 @@ export function updateTopicProgress(
 export function updateTopicFields(
   db: Database,
   id: number,
-  patch: { title?: string; section?: string | null; estHours?: number | null; code?: string },
+  patch: {
+    title?: string;
+    section?: string | null;
+    estHours?: number | null;
+    code?: string;
+    /** `null` detaches the topic from its parent. */
+    parentId?: number | null;
+  },
 ): void {
   const sets: string[] = [];
   const values: unknown[] = [];
@@ -299,6 +306,10 @@ export function updateTopicFields(
   if (patch.estHours !== undefined) {
     sets.push("est_hours = ?");
     values.push(patch.estHours);
+  }
+  if (patch.parentId !== undefined) {
+    sets.push("parent_id = ?");
+    values.push(patch.parentId);
   }
   if (!sets.length) return;
   sets.push("updated_at = datetime('now')");
@@ -398,10 +409,6 @@ export function countTopics(db: Database, syllabusId: number): number {
     .prepare("SELECT COUNT(*) AS count FROM syllabus_topics WHERE syllabus_id = ?")
     .get(syllabusId) as { count: number } | undefined;
   return Number(row?.count ?? 0);
-}
-
-export function canonicalOf(canonical: CanonicalSyllabus): string {
-  return JSON.stringify(canonical);
 }
 
 /** Snapshot used for rollback: the full topic set, archived rows included. */

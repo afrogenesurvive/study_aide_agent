@@ -5,6 +5,73 @@ current branch. Newest first.
 
 ---
 
+## [0.0.1-2] — 2026-09-10
+
+Phase 2 — spaced repetition and scheduling. The Dashboard, Review and Session
+sections are now real rather than placeholders.
+
+### Added
+
+**Card review, with FSRS scheduling**
+
+- Cards are scheduled by `ts-fsrs` (FSRS v6). Each of the four rating buttons —
+  Again / Hard / Good / Easy — shows the interval it *would* schedule before you
+  commit to it, so the choice is informed rather than a guess.
+- Keyboard shortcuts: space to reveal the answer, `1`–`4` to rate, `u` to undo.
+- **Undo is exact.** Every review is logged with the full scheduler state, so
+  undoing restores the previous schedule rather than approximating it.
+- Valence tags (struggling / curious / mastered) can be set per card.
+- A card library for filtering and archiving, and a manual **Add** form, so the
+  review loop works before generated material arrives. Cards are attached to
+  syllabus topics, which is what lets them be scheduled into the right subject.
+
+**Dashboard**
+
+- Today's plan with times, cards to review, new cards remaining, day streak,
+  syllabus coverage and days until your exam.
+- The day's cross-subject theme, a per-subject breakdown of what is due, and a
+  "needs attention" list of topics you have flagged as struggling.
+- With no syllabus imported, it points you at the Syllabus section instead of
+  showing empty statistics.
+
+**Session**
+
+- Timed interleaved study blocks: intention → subject A, break, subject B, break,
+  subject C → synthesis. Overlay connections for the current subject are shown
+  while you work.
+- A per-block countdown timer with pause, and a notes field that is kept as you
+  type. Finishing a session logs it and moves the topics you covered forward.
+
+**Scheduling**
+
+- Sessions are built around a **cross-subject theme** when one connects at least
+  two subjects you actually have cards due in, and fall back to your most overdue
+  topic per subject otherwise. The dashboard explains which it chose and why.
+- Four seeded themes (Equilibrium, Exponential Change, Energy, Structure and
+  Bonding) link Chemistry, Maths and Biology by syllabus topic.
+- New setting: **Study start time**, which anchors the times shown on the plan.
+
+### Fixed
+
+- Imports that describe structure with section headings — most CSV and Markdown
+  files — now build the topic hierarchy they imply, instead of importing flat.
+- Archiving removed topics during an import is no longer quadratic; large
+  re-imports are noticeably faster.
+- A second launch of the app no longer briefly opens a window on its way out.
+- The Syllabus Editor can now set, change, **or clear** a topic's parent. The
+  picker will not let you create a loop.
+
+### Under the hood
+
+- Database schema v2: a review log, and theme tables seeded from the bundled
+  overlay map. Existing databases upgrade in place.
+- Scheduling dates are stored in UTC throughout, so plans are not skewed by your
+  machine's timezone.
+- Removed dead code found in the phase 0–1 audit.
+- 328 tests passing, up from 97.
+
+---
+
 ## [0.0.1-1] — 2026-09-10
 
 Bug fixes for the syllabus importer and the Developer panel.

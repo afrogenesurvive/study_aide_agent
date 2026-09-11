@@ -1,0 +1,93 @@
+/* Dashboard — today's plan, quick stats and the attention list. */
+
+.dashboard__actions {
+  margin-bottom: var(--gap);
+}
+
+.dashboard__columns {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--gap);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .dashboard__columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.dashboard__plan,
+.dashboard__side > .fieldset {
+  margin-bottom: var(--gap);
+}
+
+.dashboard__theme {
+  margin: 0 0 6px;
+}
+
+.dashboard__blocks {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dashboard__block {
+  display: grid;
+  grid-template-columns: 48px 18px minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid transparent;
+  background: var(--surface);
+}
+
+.dashboard__block--subject {
+  border-left-color: var(--accent);
+}
+
+.dashboard__block--break {
+  border-left-color: var(--border);
+  color: var(--text-muted);
+}
+
+.dashboard__block--intention,
+.dashboard__block--synthesis {
+  border-left-color: var(--color-green);
+}
+
+.dashboard__block-time {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  font-size: 0.92em;
+}
+
+.dashboard__block-label {
+  min-width: 0;
+}
+
+.dashboard__subjects,
+.dashboard__attention {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dashboard__subjects li,
+.dashboard__attention li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dashboard__attention li {
+  justify-content: flex-start;
+}

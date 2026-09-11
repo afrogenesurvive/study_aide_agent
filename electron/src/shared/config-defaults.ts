@@ -43,6 +43,8 @@ export const DEFAULTS: AppConfig = {
   DAILY_STUDY_TARGET: "90",
   SESSION_LENGTH: "20",
   BREAK_LENGTH: "5",
+  /** Local clock time the day's first study block starts at. */
+  STUDY_START_TIME: "19:00",
   TIMEZONE: "America/Jamaica",
   EXAM_DATE: "",
 
@@ -117,10 +119,6 @@ export function effectiveProvider(config: AppConfig): LlmProvider {
   return (LLM_PROVIDERS as readonly string[]).includes(raw) ? (raw as LlmProvider) : "deepseek";
 }
 
-export function isApiProvider(provider: LlmProvider): boolean {
-  return provider !== "ollama";
-}
-
 /** Which keys must be non-empty for the app to actually work right now. */
 export function requiredKeys(config: AppConfig): string[] {
   const key = PROVIDER_KEY[effectiveProvider(config)];
@@ -154,6 +152,10 @@ export function checkConfigValues(config: AppConfig): ConfigCheckResult {
   }
   if (!String(config.TIMEZONE || "").trim()) {
     warnings.push("TIMEZONE is empty — reminders will use the system timezone.");
+  }
+  const startTime = String(config.STUDY_START_TIME || "").trim();
+  if (startTime && !/^([01]?\d|2[0-3]):[0-5]\d$/.test(startTime)) {
+    warnings.push("STUDY_START_TIME is not a 24-hour HH:MM time — 19:00 will be used instead.");
   }
 
   return { ok: missing.length === 0, missing, warnings, activeProvider: provider };

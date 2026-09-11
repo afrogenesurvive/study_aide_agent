@@ -27,6 +27,32 @@ import type {
   TopicStatus,
   Valence,
 } from "../shared/syllabus-types";
+import type {
+  CardInput,
+  CardPatch,
+  CardReviewRow,
+  DueCard,
+  DueSummary,
+  GradeResult,
+  Rating,
+  RatingPreview,
+  ReviewFilter,
+  ReviewStats,
+  SubjectDue,
+  TopicCardCount,
+  UndoResult,
+} from "../shared/review-types";
+import type {
+  PlanRequest,
+  PlanSnapshot,
+  ResolvedTheme,
+  SessionCompleteInput,
+  SessionStartResult,
+  SessionSummary,
+  StreakInfo,
+  StudySessionRow,
+  TodaySummary,
+} from "../shared/scheduler-types";
 
 /**
  * The entire renderer-facing surface.
@@ -38,7 +64,6 @@ import type {
 
 const api = {
   platform: process.platform,
-  isPackaged: process.env.NODE_ENV === "production",
 
   // ── app ──
   getVersion: (): Promise<string> => ipcRenderer.invoke("app:version"),
@@ -155,9 +180,14 @@ const api = {
   ): Promise<boolean> => ipcRenderer.invoke("syllabus:setProgress", topicId, patch),
   updateTopic: (
     topicId: number,
-    patch: { code?: string; title?: string; section?: string | null; estHours?: number | null },
-  ): Promise<{ success: boolean; error?: string }> =>
-    ipcRenderer.invoke("syllabus:updateTopic", topicId, patch),
+    patch: {
+      code?: string;
+      title?: string;
+      section?: string | null;
+      estHours?: number | null;
+      parentId?: number | null;
+    },
+  ): Promise<{ success: boolean; error?: string }> => ipcRenderer.invoke("syllabus:updateTopic", topicId, patch),
   createTopic: (
     syllabusId: number,
     topic: { code?: string; title: string; section?: string | null; estHours?: number | null },
@@ -171,6 +201,70 @@ const api = {
     ipcRenderer.invoke("syllabus:reorderTopic", topicId, orderIndex),
   deleteSyllabus: (syllabusId: number): Promise<{ success: boolean }> =>
     ipcRenderer.invoke("syllabus:deleteSyllabus", syllabusId),
+
+  // ── review ──
+  getReviewSummary: (): Promise<DueSummary> => ipcRenderer.invoke("review:summary"),
+  getDueBySubject: (): Promise<SubjectDue[]> => ipcRenderer.invoke("review:dueBySubject"),
+  getReviewQueue: (filter?: ReviewFilter): Promise<DueCard[]> =>
+    ipcRenderer.invoke("review:queue", filter),
+  getReviewStats: (filter?: ReviewFilter): Promise<ReviewStats> =>
+    ipcRenderer.invoke("review:stats", filter),
+  listCards: (filter?: ReviewFilter): Promise<DueCard[]> =>
+    ipcRenderer.invoke("review:cards", filter),
+  getCard: (cardId: number): Promise<DueCard | null> => ipcRenderer.invoke("review:card", cardId),
+  previewCard: (cardId: number): Promise<RatingPreview[] | null> =>
+    ipcRenderer.invoke("review:preview", cardId),
+  rateCard: (request: {
+    cardId: number;
+    rating: Rating;
+    sessionId?: number | null;
+    durationMs?: number | null;
+  }): Promise<GradeResult> => ipcRenderer.invoke("review:rate", request),
+  undoReview: (cardId: number): Promise<UndoResult> => ipcRenderer.invoke("review:undo", cardId),
+  createCard: (input: CardInput): Promise<{ success: boolean; cardId?: number; error?: string }> =>
+    ipcRenderer.invoke("review:createCard", input),
+  updateCard: (cardId: number, patch: CardPatch): Promise<{ success: boolean; error?: string }> =>
+    ipcRenderer.invoke("review:updateCard", cardId, patch),
+  archiveCard: (cardId: number, archived?: boolean): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke("review:archiveCard", cardId, archived ?? true),
+  setCardValence: (cardId: number, valence: Valence | null): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke("review:setValence", cardId, valence),
+  deleteCard: (cardId: number): Promise<{ success: boolean }> =>
+    ipcRenderer.invoke("review:deleteCard", cardId),
+  getCardHistory: (cardId: number, limit?: number): Promise<CardReviewRow[]> =>
+    ipcRenderer.invoke("review:history", cardId, limit),
+  getTopicCardCounts: (syllabusId?: number): Promise<TopicCardCount[]> =>
+    ipcRenderer.invoke("review:topicCounts", syllabusId),
+
+  // ── scheduler ──
+  getThemes: (syllabusId?: number): Promise<ResolvedTheme[]> =>
+    ipcRenderer.invoke("scheduler:themes", syllabusId),
+  getTheme: (theme: string, syllabusId?: number): Promise<ResolvedTheme | null> =>
+    ipcRenderer.invoke("scheduler:theme", theme, syllabusId),
+  getThemesForTopic: (topicId: number, syllabusId?: number): Promise<ResolvedTheme[]> =>
+    ipcRenderer.invoke("scheduler:themesForTopic", topicId, syllabusId),
+  getPlan: (request?: PlanRequest): Promise<PlanSnapshot> =>
+    ipcRenderer.invoke("scheduler:plan", request),
+  regeneratePlan: (request?: PlanRequest): Promise<PlanSnapshot> =>
+    ipcRenderer.invoke("scheduler:regenerate", request),
+  completePlan: (planId: number, completed?: boolean): Promise<boolean> =>
+    ipcRenderer.invoke("scheduler:completePlan", planId, completed ?? true),
+  getToday: (): Promise<TodaySummary> => ipcRenderer.invoke("scheduler:today"),
+  getStreak: (): Promise<StreakInfo> => ipcRenderer.invoke("scheduler:streak"),
+
+  // ── sessions ──
+  startSession: (theme?: string | null): Promise<SessionStartResult> =>
+    ipcRenderer.invoke("session:start", theme),
+  completeSession: (input: SessionCompleteInput): Promise<SessionSummary> =>
+    ipcRenderer.invoke("session:complete", input),
+  listSessions: (limit?: number): Promise<StudySessionRow[]> =>
+    ipcRenderer.invoke("session:list", limit),
+  getSession: (sessionId: number): Promise<StudySessionRow | null> =>
+    ipcRenderer.invoke("session:get", sessionId),
+  getSessionReviews: (sessionId: number): Promise<CardReviewRow[]> =>
+    ipcRenderer.invoke("session:reviews", sessionId),
+  getSessionReviewCount: (sessionId: number): Promise<number> =>
+    ipcRenderer.invoke("session:reviewCount", sessionId),
 
   // ── notifications ──
   showNotification: (title: string, body: string): Promise<boolean> =>

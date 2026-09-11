@@ -3,6 +3,8 @@ import { registerAppIpc } from "./app.ipc";
 import { registerConfigIpc } from "./config.ipc";
 import { registerDatabaseIpc } from "./database.ipc";
 import { registerLogsIpc } from "./logs.ipc";
+import { registerReviewIpc } from "./review.ipc";
+import { registerSchedulerIpc } from "./scheduler.ipc";
 import { registerSyllabusIpc } from "./syllabus.ipc";
 import { registerUiStateIpc } from "./ui-state.ipc";
 
@@ -21,4 +23,6 @@ export function registerAllIpc(): void {
   registerDatabaseIpc();
   registerAgentConfigIpc();
   registerSyllabusIpc();
+  registerReviewIpc();
+  registerSchedulerIpc();
 }

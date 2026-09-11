@@ -6,9 +6,10 @@ import {
   syncConfigToEnv,
 } from "./config";
 import { addLog, setLogLevel, subscribe, unsubscribeAll } from "./logger";
-import { isDev, devServerUrl, preloadPath, rendererIndexPath, studyDbPath } from "./paths";
+import { isDev, devServerUrl, preloadPath, rendererIndexPath, studyDbPath, dataDir } from "./paths";
 import { registerAllIpc } from "./ipc";
-import { closeDb, initDatabase } from "../../services/database";
+import { closeDb, getDb, initDatabase } from "../../services/database";
+import { seedOverlayMapFile } from "../../services/scheduler/overlay";
 import { initAgentConfigDir } from "./agent-config";
 import { registerSharedModules } from "./llm";
 import type { LogEntry } from "../shared/ipc-types";
@@ -36,7 +37,12 @@ const dotEnv = loadDotEnv();
 
 // ── single instance ──────────────────────────────────────────────────────────
 
-if (!app.requestSingleInstanceLock()) {
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+
+if (!hasSingleInstanceLock) {
+  // Another instance owns the app. `app.quit()` is asynchronous, so this branch
+  // returning is not enough on its own — `whenReady` is guarded below too, or
+  // this instance still builds a window on the way out.
   app.quit();
 } else {
   app.on("second-instance", () => {
@@ -124,6 +130,8 @@ function pipeLogsToRenderer(): () => void {
 // ── lifecycle ────────────────────────────────────────────────────────────────
 
 app.whenReady().then(() => {
+  if (!hasSingleInstanceLock) return;
+
   syncConfigToEnv();
   setLogLevel((process.env.LOG_LEVEL as "debug" | "info" | "warn" | "error") || "info");
 
@@ -145,6 +153,26 @@ app.whenReady().then(() => {
   const agentConfig = initAgentConfigDir();
   if (agentConfig.seeded.length) {
     addLog("main", "info", `Seeded agent config: ${agentConfig.seeded.join(", ")}`);
+  }
+
+  // Overlay themes drive interleaving, so they are refreshed from the committed
+  // map on every boot. A failure here must not stop the app: without themes the
+  // scheduler falls back to plain most-overdue-per-subject ordering.
+  if (dbStatus.ok) {
+    try {
+      const overlays = seedOverlayMapFile(getDb(), dataDir("overlap-map.json"));
+      for (const warning of overlays.warnings) addLog("scheduler", "warn", `Overlay map: ${warning}`);
+      if (overlays.themes) {
+        addLog(
+          "scheduler",
+          "info",
+          `Overlay themes seeded: ${overlays.themes} theme(s), ${overlays.connections} topic link(s)` +
+            (overlays.removed ? `, ${overlays.removed} stale link(s) removed.` : "."),
+        );
+      }
+    } catch (error) {
+      addLog("scheduler", "warn", `Could not seed overlay themes: ${(error as Error).message}`);
+    }
   }
 
   const unsubscribe = pipeLogsToRenderer();
