@@ -15,6 +15,6 @@
     "rootDir": ".",
     "outDir": "dist"
   },
-  "include": ["src/main/**/*", "src/shared/**/*", "services/**/*"],
+  "include": ["src/main/**/*", "src/shared/**/*", "services/**/*", "agent-runner/**/*"],
   "exclude": ["**/*.test.ts", "dist", "node_modules"]
 }

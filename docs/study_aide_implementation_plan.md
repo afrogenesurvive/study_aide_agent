@@ -6,13 +6,17 @@
 > system**, and an **Electron UI/config/LLM-provider foundation** derived from
 > `ai_transcription_agent` + `copilot_agentic_task_helper`.
 
-**Status:** phases 0–2 implemented · **Date:** 2026-09-10 (plan v2: 2026-09-09) · **Target:** A-level Math / Chemistry / Biology
+**Status:** phases 0–2 complete, phase 3 part-built · **Date:** 2026-09-12 (plan v2: 2026-09-09) · **Target:** A-level Math / Chemistry / Biology
 
 > **Progress:** Phases 0 (foundation), 1 (data + syllabus) and 2 (FSRS +
-> scheduling) are built and verified. See [`CHANGELOG.md`](CHANGELOG.md) for what
-> shipped and [`development_environment.md`](development_environment.md) for local
-> setup. Implementation notes and the deviations from this plan are at the end of
-> §10.
+> scheduling) are built and verified. Phase 3 (LLM provider & generation) is
+> **part-built**: the provider policy, the schema, the repositories, the pipeline
+> engine and the agent runner have landed, but the orchestration layer, the IPC
+> surface and the Generate panel have not — so none of phase 3 is reachable from
+> the interface yet, and none of it has been exercised against a real model. See
+> [`CHANGELOG.md`](CHANGELOG.md) for what shipped and
+> [`development_environment.md`](development_environment.md) for local setup.
+> Implementation notes and the deviations from this plan are at the end of §10.
 
 ---
 
@@ -135,6 +139,16 @@ agent-runner and any in-app LLM call:
 - Provider/model resolved **live from env on every call** so Settings changes apply without restart.
 - `usage-tracker.mjs` records tokens/cost per call → surfaced in the Dev panel.
 
+**As built (3A):** the layer is no longer fire-and-forget. Every request goes
+through a bounded helper that combines a per-attempt timeout with a caller
+`AbortSignal`, and transient failures (429, any 5xx, network, timeout) are retried
+with exponential backoff. **A cancellation is never retried** — it and a timeout
+both abort the request, but they mean different things. Failures throw a typed
+error carrying `status` and `retryable`, so a caller can tell bad input apart from
+a flaky network. Costs come from a local rate table rather than a figure the
+caller supplies, and a model with no known rate leaves `cost` **NULL** rather than
+reporting a misleading zero.
+
 **Repurposed for Study Aide:**
 - **Mode A (material generation)** — one batched call per syllabus section/topic.
 - **Mode B (Socratic)** — multi-turn `callChatHistory()` with tool access.
@@ -152,6 +166,20 @@ Adapt `agent-config/` so pipeline steps are editable without code:
   (`gmail_list_messages`, `gmail_get_message`, `calendar_list_events`) — **send/create tools require
   the Review gate** (user confirms before email send or event creation).
 
+**As built (3C):** the file stays declarative about *which* tools exist; a registry
+in the service layer owns *how* each one runs, mapping every tool to a process and
+a lifecycle stage (`pre` reads in main, `work` model calls in the child, `gate`,
+`commit`). That is what makes the safety rule above enforceable from code rather
+than trusting the file: a terminal tool is described in three places (the tool's
+`terminal`, the step's `isTerminal`, the file's `terminal_tools`) and a validator
+reports any disagreement, because a tool missing from `terminal_tools` would be
+treated as reversible at run time.
+
+The shipped template was missing **five** tools, not four: `generate_flashcards`,
+`generate_quiz`, `review_gate` and `materials_save` for the new pipeline, plus
+`socratic_reply`, which a pipeline had referenced since phase 0 without the tool
+ever being defined. It now defines 17 rather than 12.
+
 ### 2.5 Service architecture
 
 ```mermaid
@@ -161,7 +189,7 @@ flowchart LR
         PRE <--> MAIN["main process (IPC)"]
         MAIN --> BM["backend-manager.ts"]
     end
-    BM --> RUN["agent-runner (fs.watch)"]
+    BM --> RUN["agent-runner (spawned)"]
     BM --> MCPG["mcp/gmail"]
     BM --> MCPC["mcp/calendar"]
     MAIN --> DB[("SQLite study.db")]
@@ -174,6 +202,19 @@ flowchart LR
 - `backend-manager.ts` spawns the agent-runner and (on demand) the MCP servers, health-polls them,
   and restarts on crash. In packaged mode, child Node services run on Electron's embedded Node
   (`ELECTRON_RUN_AS_NODE=1`).
+- **As built (3D):** the runner **is** a spawned child, but nothing watches the
+  filesystem. A run is started from the Generate panel with a known input, so the
+  child receives its whole job as JSON on stdin and streams newline-delimited
+  events back on stdout before exiting. It is **LLM-only and never opens SQLite**
+  — the main process performs every database write, which keeps a single writer on
+  the database and leaves the tested `services/` tree as the only thing that talks
+  to it. The child also reads no configuration at all: every prompt is rendered by
+  the main process, so there are no paths to resolve in a packaged build and
+  nothing to keep in sync. Two consequences worth knowing: `nodeSpawnSpec()` now
+  always re-enters Electron's embedded Node rather than shelling out to a `node`
+  on `PATH` (the machine default is v18, which the app does not support), and
+  `getChildEnv()` gained `SHARED_DIR` because the child has no Electron `app` to
+  resolve resources with.
 - `ui-state.json` persists panel tabs/subtabs/filters and in-progress drafts across restarts.
 - Logger: in-memory ring buffer (last 50k entries) + per-session log files, streamed to the Dev panel.
 
@@ -384,6 +425,11 @@ study_aide_agent/
 └── tsconfig.json
 ```
 
+> **Target shape, not the as-built layout.** The tree above is the intended
+> structure. Where the build diverged — `services/` and `agent-runner/` living
+> under `electron/`, for instance — the deviations table at the end of §10 is
+> authoritative.
+
 ---
 
 ## 7. Data model (SQLite)
@@ -399,16 +445,25 @@ Extends v1; **new** tables marked ★.
 | **flashcards** | card data | id, topic_id→syllabus_topics, question, answer, valence, difficulty, stability, last_review, next_review, review_count |
 | **overlay_connections** | cross-subject links | id, theme, subject_a/concept_a, subject_b/concept_b, subject_c/concept_c, description, source (derived\|manual) |
 | **study_sessions** | recorded sessions | id, session_date, duration, session_type, themes, topic_codes, score |
-| **quiz_results** | performance | id, flashcard_id, session_id, correct, confidence, response_time_ms |
+| **quiz_results** | performance | id, flashcard_id, quiz_question_id, session_id, correct, confidence, response_time_ms |
+| ★ **quizzes** | generated quizzes (phase 3) | id, job_id, topic_id, title, source, archived_at, created_at |
+| ★ **quiz_questions** | generated MCQ items (phase 3) | id, quiz_id, topic_id, order_index, question, choices_json, answer_index, explanation |
 | **valence_tags** | valence | target_type (topic\|flashcard), target_id, tag, intensity 1-5, created_at |
 | **study_plans** | generated plans | id, date, plan_json, completed |
 | **notifications** | reminders | id, type, channel, scheduled_at, sent_at, message, context_json, gmail_message_id, calendar_event_id |
 | ★ **notification_rules** | reminder config | id, type, channel, offset_minutes, enabled |
 | ★ **llm_usage** | token/cost log | id, provider, model, prompt_tokens, completion_tokens, cost, context, created_at |
-| ★ **generation_jobs** | material-gen runs | id, pipeline, input_json, output_json, status, gate_state, created_at |
+| ★ **generation_jobs** | material-gen runs | id, pipeline, input_json, output_json, status, gate_state, error, committed_at, created_at, updated_at |
 
 > **Note:** v1's `topics` table is superseded by `syllabus_topics`. Keeping topics inside a
 > syllabus gives every downstream system a stable `code` to reference.
+>
+> **As built:** the schema is at **v3** (`003_generation_and_quizzes`), 20 tables.
+> Phase 3 added `quizzes`, `quiz_questions`, `quiz_results.quiz_question_id` and
+> `generation_jobs.committed_at` — `generation_jobs` had existed since `001` with
+> no code touching it. `quiz_results` gained `quiz_question_id` because a
+> multiple-choice item is not a flashcard: distractors have nowhere to live in
+> `flashcards.question/answer`.
 
 ---
 
@@ -419,7 +474,7 @@ Extends v1; **new** tables marked ★.
 | **Onboarding** | `UploadPanel` + `ConfigPanel` | Import syllabus → exam date → daily target → connect Google |
 | **Dashboard** | `App.tsx` shell + `StatusBar` | Today's plan, due cards, streak, coverage %, Start session, sync status |
 | **Syllabus** (own section) | `HistoryPanel` + `ResultsViewer` tabs | Sub-tabs: **Active** · **Imports** · **Coverage** · **Editor**; drag-drop import; diff preview before overwrite |
-| **Generate** | `ProgressPanel` stepper + `GateReviewModal` | Choose syllabus topics → pipeline stepper → review gate → save |
+| **Generate** | `UploadPanel` numbered steps + `DiffPreview` (not `GateReviewModal`) | Choose scope (topics / section / whole syllabus) → run stepper → review gate → save |
 | **Review** | `ResultsViewer` | Card front/back, rate Again/Hard/Good/Easy, valence tag |
 | **Session** | `ProgressPanel` | Timeblock timer, subject + overlays, notes, auto-log |
 | **Socratic** | `RichTextView`/`RichTextEditor` chat | Multi-turn chat, pre-written trees, save to notes |
@@ -443,6 +498,15 @@ Extends v1; **new** tables marked ★.
   "ANTHROPIC_API_KEY": "", "ANTHROPIC_MODEL": "claude-sonnet-4-5", "ANTHROPIC_MAX_TOKENS": "4096",
   "OLLAMA_BASE_URL": "http://127.0.0.1:11434", "OLLAMA_MODEL": "", "OLLAMA_NUM_CTX": "32768",
   "LLM_TEMPERATURE": "0.1",
+  "LLM_TIMEOUT_MS": "120000",            // bounds ONE attempt, not the whole call
+  "LLM_MAX_RETRIES": "3",                // counts retries AFTER the first attempt
+  "LLM_RETRY_BASE_DELAY_MS": "4000",
+
+  // ── Generation (agent runner) ──
+  "GENERATION_MAX_CARDS_PER_TOPIC": "8",
+  "GENERATION_TEMPERATURE": "0.4",       // warmer than LLM_TEMPERATURE: cards need variety
+  "AGENT_RUNNER_ENABLED": "true",
+  "AGENT_RUNNER_TIMEOUT_MS": "300000",   // ceiling for one whole run
 
   // ── Google (Gmail + Calendar + Tasks, one OAuth token) ──
   "GMAIL_CLIENT_ID": "", "GMAIL_CLIENT_SECRET": "", "GMAIL_REFRESH_TOKEN": "",
@@ -525,10 +589,51 @@ Notable refinements to the plan above:
 - Cards are authored by hand until phase 3 supplies generation.
 - The StatusBar activity pill was deferred; the Session panel carries the clock.
 
-### Phase 3 — LLM provider & generation (Days 13–17)
+### Phase 3 — LLM provider & generation (Days 13–17) 🚧 **part-built**
 - `shared/model-provider.mjs` + `usage-tracker.mjs` adapted.
 - `agent-runner/` + `agent-config/pipeline` for `material-generation`; review gate before save.
 - **Generate** panel (syllabus-grounded flashcards/quizzes).
+
+Dispatched as 3A (provider policy + costs + scrubbing), 3B (schema +
+repositories), 3C (pipeline engine + tool registry), 3D (agent-runner child),
+3E (orchestration + gate), 3F (IPC), 3G (Generate panel + quiz runner) and 3H
+(tests + docs). **3A–3D have landed; 3E–3H have not**, so none of the three
+deliverables above is reachable from the interface yet, and no phase 3 code path
+has been run against a real model.
+
+Notable refinements to the plan above:
+- The provider gained a call policy the plan never specified: a per-attempt
+  timeout, exponential-backoff retries, and cancellation. A cancellation is never
+  retried, even though it and a timeout both abort the request.
+- `usage-tracker.mjs` could not record a cost by itself — nothing ever supplied
+  one — so `llm_usage.cost` had been NULL since phase 0. Costs now come from a
+  local rate table, and an unknown model stays NULL rather than becoming zero. The
+  shipped rates are **indicative placeholders**, not quotes.
+- The plan's `quiz_results` could not describe a generated quiz, because a
+  multiple-choice item needs distractors. Hence `quizzes` + `quiz_questions`, and a
+  nullable `quiz_question_id` on `quiz_results`.
+- **`agent-runner/` sits under `electron/`**, like `services/`, so the single
+  main-process `tsc` project compiles it to `dist/agent-runner/`.
+- The runner is **not** file-watched, and it is LLM-only: it never opens the
+  database (see §2.5).
+- `generate_quiz` is **one call per topic**, so each quiz belongs to one topic. The
+  shipped step description claimed those items were derived algorithmically;
+  plausible distractors cannot be invented by an algorithm, so it was corrected.
+- The review gate **reuses the Syllabus importer's numbered-step + preview
+  pattern** rather than porting `GateReviewModal` — the app has no modal primitive,
+  and the importer is already the review-gate precedent.
+- `agent-config/tools.template.json` was missing five tools, not four (see §2.4):
+  12 → 17.
+- Tool definitions resolve as **live ∪ template-gaps-only**. Seeding is
+  non-destructive, so an installation predating phase 3 keeps its own `tools.json`
+  and receives the new tools additively. `schema.json` is the reverse: always read
+  from the shipped template, because a stale copy would reject newly shipped fields
+  and no user edits it.
+- The runner's policy (one run at a time, the whole-run timeout) lives in the
+  service layer rather than beside the spawn call, so it can be unit-tested without
+  Electron — no test ever starts a process. There is no PID file: the manager holds
+  the child handle, and the reference implementation's PID file only existed because
+  its runner was a long-lived daemon.
 
 ### Phase 4 — Gmail + Calendar MCP (Days 18–22)
 - `mcp/lib/google-client.mjs` (shared auth/API core) + `mcp/gmail` + `mcp/calendar`.
@@ -562,6 +667,12 @@ Written up in full in [`CHANGELOG.md`](CHANGELOG.md); the structural ones:
 | `usage-tracker.mjs` records tokens/cost per call | Retargeted to a sink hook writing the local `llm_usage` table | The reference implementation pushes to an external telemetry service; a local-first app should not. |
 | `ts-fsrs` (phase 2) | Driver choice made now: `node:sqlite` | Electron 43 bundles Node 24.20, so the built-in module is available with no native rebuild and no ABI/notarisation risk. |
 | SQLite driver in the main process | `services/database/db.ts` is a thin facade | Keeps a swap to `better-sqlite3` a one-file change if `node:sqlite` proves limiting. |
+| `agent-runner/` at the repo root | `electron/agent-runner/` | Same reason as `services/`: it has to be compiled by the main-process `tsc` project, which only reaches inside `electron/`. |
+| Runner triggered by `fs.watch` | Started explicitly from the Generate panel | Nothing needs to react to a file appearing. A run is a user action with a known input, which removes the watcher lifecycle and its debounce entirely. |
+| The runner executes pipeline tools | The runner executes **only the model calls**; main does everything else | The child never opens SQLite, so there is one writer on the database and the whole persistence layer stays inside the unit-tested `services/` tree. |
+| `scripts/sanitize.stub.mjs` | Moved to `shared/sanitize.mjs` | `extraResources` ships `shared/`, `agent-config/` and `data/` but not `scripts/`, so a runtime dependency could not stay where it was. |
+| `quiz_results` records a `flashcard_id` | Also a nullable `quiz_question_id`, plus new `quizzes` / `quiz_questions` | Distractors have nowhere to live in `flashcards.question/answer`, so a multiple-choice item needed its own tables. |
+| `handler` is `bridge \| direct` | Unchanged, but a registry also maps each tool → process + stage | Which process runs a step is not something a user should have to get right in a config file, and the mapping is needed in code to enforce the terminal-tool rule. |
 
 Two smaller decisions: no tray icon (would require shipping an asset; deferred to
 phase 7) and the Appearance/Configuration/Developer/Storage panels were built for
@@ -577,6 +688,15 @@ logging layers verifiable.
 - **OAuth scopes:** minimal combined Gmail (`gmail.send`, `gmail.readonly`), Calendar (`calendar.events`), Tasks.
 - **Prompt-injection:** all external data (email bodies, event descriptions, imported syllabus) passes
   through `sanitizeObject()` before reaching the LLM.
+  **As built (3A):** the text path is live — `sanitizeText()` applies a baseline
+  scrub that always runs (NUL bytes, code fences, the common
+  instruction-override phrasings, and a length cap that bounds how much text an
+  attacker can use to bury an instruction), with an optional private pattern set
+  layered on top. The private set ships empty because the repository is public, so
+  a missing, broken or throwing one degrades to the baseline instead of disabling
+  scrubbing. Object-level `sanitizeObject()` is not wired up yet; it arrives with
+  the MCP servers in phase 4, which is also when untrusted email and event bodies
+  start flowing in.
 - **Tool allowlist:** autonomous runs are read-only; `gmail_send_message` / `calendar_create_event`
   require the Review gate unless `NOTIFY_AUTOSEND=true`.
 - **No `nodeIntegration`;** renderer talks through `preload.ts` only.

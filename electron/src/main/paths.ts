@@ -85,20 +85,18 @@ export interface NodeSpawnSpec {
 }
 
 /**
- * How to spawn a Node script. Packaged builds reuse Electron's embedded Node
- * (`ELECTRON_RUN_AS_NODE=1`) so no standalone runtime has to ship.
+ * How to spawn a Node script.
+ *
+ * Always re-enters Electron's embedded Node, in dev and packaged builds alike.
+ * The original dev branch shelled out to a `node` on PATH, which would run the
+ * child on whatever version happens to be installed — this machine's default is
+ * v18, which the app does not support. Pinning to `process.execPath` makes the
+ * child's runtime identical to the main process's in every context.
  */
 export function nodeSpawnSpec(scriptPath: string): NodeSpawnSpec {
-  if (app.isPackaged) {
-    return {
-      command: process.execPath,
-      args: [scriptPath],
-      env: { ELECTRON_RUN_AS_NODE: "1" },
-    };
-  }
   return {
-    command: process.platform === "win32" ? "node.exe" : "node",
+    command: process.execPath,
     args: [scriptPath],
-    env: {},
+    env: { ELECTRON_RUN_AS_NODE: "1" },
   };
 }

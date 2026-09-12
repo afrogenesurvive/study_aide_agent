@@ -3,6 +3,6 @@
   "compilerOptions": {
     "noEmit": true
   },
-  "include": ["src/main/**/*", "src/shared/**/*", "services/**/*", "tests/**/*"],
+  "include": ["src/main/**/*", "src/shared/**/*", "services/**/*", "agent-runner/**/*", "tests/**/*"],
   "exclude": ["dist", "node_modules"]
 }

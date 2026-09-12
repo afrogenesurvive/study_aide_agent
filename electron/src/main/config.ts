@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { app } from "electron";
 import { addLog } from "./logger";
-import { configDefaultsPath, configPath, repoRootPath, userDataPath } from "./paths";
+import { configDefaultsPath, configPath, repoRootPath, sharedDir, userDataPath } from "./paths";
 import {
   CONFIG_KEYS,
   DEFAULTS,
@@ -297,6 +297,8 @@ export function getChildEnv(): Record<string, string> {
   env.LLM_PROVIDER = provider;
   env.STUDY_DB_PATH = user.STUDY_DB_PATH || process.env.STUDY_DB_PATH || "";
   env.LOG_DIR = userDataPath("logs", "children");
+  // Absolute, because the child has no Electron `app` to resolve resources with.
+  env.SHARED_DIR = sharedDir();
   env.APP_VERSION = APP_VERSION;
   return env;
 }
