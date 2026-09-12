@@ -2,10 +2,13 @@ import { pathToFileURL } from "node:url";
 import { addLog } from "./logger";
 import { getConfig } from "./config";
 import { sharedDir } from "./paths";
+import { getPricingTable } from "./pricing";
 import { setChatModuleLoader, type ChatModule } from "../../services/llm/provider";
+import { setSanitizerLoader, type SanitizerModule } from "../../services/llm/sanitize";
+import { applyCost } from "../../services/llm/pricing";
 import { tryGetDb } from "../../services/database";
 import { recordUsage } from "../../services/llm/usage";
-import type { LlmUsageRecord } from "../../services/types";
+import type { LlmUsageRecord, LlmUsageSink } from "../../services/types";
 
 /**
  * Bridges the Electron main process to the shared ESM modules in `shared/`.
@@ -38,6 +41,17 @@ export function registerSharedModules(): void {
     return mod as unknown as ChatModule;
   });
 
+  // Optional private pattern set. A build with no `sanitize.private.mjs` simply
+  // falls back to the baseline scrub in `services/llm/sanitize.ts`.
+  setSanitizerLoader(async () => {
+    const file = pathToFileURL(sharedDir("sanitize.mjs")).href;
+    const mod = await importEsm(file);
+    if (typeof mod.sanitize !== "function") {
+      throw new Error("shared/sanitize.mjs did not export sanitize().");
+    }
+    return mod as unknown as SanitizerModule;
+  });
+
   void installUsageSink();
 }
 
@@ -57,16 +71,18 @@ async function installUsageSink(): Promise<void> {
     const setUsageSink = mod.setUsageSink as ((fn: unknown) => unknown) | undefined;
     if (typeof setUsageSink !== "function") return;
 
-    setUsageSink((record: unknown) => {
+    const sink: LlmUsageSink = (record) => {
       if (getConfig().USAGE_TRACKING_ENABLED !== "true") return;
       const db = tryGetDb();
       if (!db) return;
       try {
-        recordUsage(db, record as LlmUsageRecord);
+        recordUsage(db, applyCost(record, getPricingTable()));
       } catch (err) {
         addLog("llm", "warn", `Could not record LLM usage: ${describe(err)}`);
       }
-    });
+    };
+
+    setUsageSink(sink as unknown as (fn: unknown) => unknown);
   } catch (err) {
     addLog("llm", "debug", `Usage tracking unavailable: ${describe(err)}`);
   }

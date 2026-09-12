@@ -7,6 +7,12 @@
  *
  * Normalized return shape:
  *   { toolCall: {name, arguments} | null, reply: string | null, usage: object | null, reasoningContent: string | null }
+ *
+ * Calls are retried with exponential backoff on transient failures (429, 5xx,
+ * network and timeout errors) and are individually cancellable: pass a `signal`
+ * to abort, and `timeoutMs` to bound a single attempt. A cancellation is never
+ * retried. Failures throw an `LlmCallError` carrying `status` and `retryable`,
+ * so callers can tell bad input apart from a flaky network.
  */
 
 import { recordCall } from "./usage-tracker.mjs";
@@ -28,6 +34,31 @@ const LABELS = {
 };
 
 const OLLAMA_CTX_OPTIONS = [32768, 65536, 131072];
+
+/** A single attempt is bounded. Long generations need a generous ceiling. */
+const DEFAULT_TIMEOUT_MS = 120_000;
+/** Retries *after* the first attempt, matching `pipeline.json`'s `max_retries`. */
+const DEFAULT_MAX_RETRIES = 3;
+const DEFAULT_RETRY_BASE_DELAY_MS = 4000;
+
+/** Statuses worth trying again; other 4xx codes are the caller's fault. */
+const RETRYABLE_STATUSES = new Set([408, 409, 425, 429]);
+
+/**
+ * A failed provider call.
+ *
+ * `retryable` is what the backoff loop keys on. `status` is 0 for network and
+ * timeout failures, which never produced an HTTP response.
+ */
+export class LlmCallError extends Error {
+  constructor(message, { status = 0, retryable = false, providerId = "unknown" } = {}) {
+    super(message);
+    this.name = "LlmCallError";
+    this.status = status;
+    this.retryable = retryable;
+    this.providerId = providerId;
+  }
+}
 
 let lastProviderId = null;
 let lastModel = null;
@@ -96,18 +127,41 @@ export async function checkOllamaHealth(baseUrl = ollamaBaseUrl()) {
 
 /**
  * Single-shot call.
- * @param {{systemMessage?:string, userContext?:string, tools?:object[], temperature?:number, meta?:object}} opts
+ *
+ * @param {{systemMessage?:string, userContext?:string, tools?:object[], temperature?:number, meta?:object,
+ *          signal?:AbortSignal, timeoutMs?:number, maxRetries?:number, retryBaseDelayMs?:number}} opts
  */
-export async function callChat({ systemMessage, userContext, tools = [], temperature, meta } = {}) {
+export async function callChat({
+  systemMessage,
+  userContext,
+  tools = [],
+  temperature,
+  meta,
+  signal,
+  timeoutMs,
+  maxRetries,
+  retryBaseDelayMs,
+} = {}) {
   const messages = [];
   if (systemMessage) messages.push({ role: "system", content: systemMessage });
   messages.push({ role: "user", content: userContext ?? "" });
-  return dispatch({ messages, tools, temperature, meta });
+  return dispatch({
+    messages,
+    tools,
+    temperature,
+    meta,
+    signal,
+    timeoutMs,
+    maxRetries,
+    retryBaseDelayMs,
+  });
 }
 
 /**
  * Multi-turn call.
- * @param {{systemMessage?:string, messages?:object[], tools?:object[], temperature?:number, meta?:object}} opts
+ *
+ * @param {{systemMessage?:string, messages?:object[], tools?:object[], temperature?:number, meta?:object,
+ *          signal?:AbortSignal, timeoutMs?:number, maxRetries?:number, retryBaseDelayMs?:number}} opts
  */
 export async function callChatHistory({
   systemMessage,
@@ -115,11 +169,24 @@ export async function callChatHistory({
   tools = [],
   temperature,
   meta,
+  signal,
+  timeoutMs,
+  maxRetries,
+  retryBaseDelayMs,
 } = {}) {
   const assembled = systemMessage
     ? [{ role: "system", content: systemMessage }, ...messages]
     : [...messages];
-  return dispatch({ messages: assembled, tools, temperature, meta });
+  return dispatch({
+    messages: assembled,
+    tools,
+    temperature,
+    meta,
+    signal,
+    timeoutMs,
+    maxRetries,
+    retryBaseDelayMs,
+  });
 }
 
 /** Providers whose prompt evaluation is expensive enough to be worth caching. */
@@ -129,7 +196,16 @@ export function isLocalProvider(provider = getProvider()) {
 
 // ── internals ────────────────────────────────────────────────────────────────
 
-async function dispatch({ messages, tools, temperature, meta }) {
+async function dispatch({
+  messages,
+  tools,
+  temperature,
+  meta,
+  signal,
+  timeoutMs,
+  maxRetries,
+  retryBaseDelayMs,
+}) {
   const provider = getProvider();
   const model = getModelName(provider);
   lastProviderId = provider;
@@ -147,28 +223,135 @@ async function dispatch({ messages, tools, temperature, meta }) {
       ? temperature
       : Number.parseFloat(process.env.LLM_TEMPERATURE || "0.1");
 
-  const startedAt = Date.now();
-  const result =
-    provider === "anthropic"
-      ? await callAnthropic({ apiKey, model, messages, tools, temperature: resolvedTemperature })
-      : await callOpenAiCompatible({
-          provider,
-          apiKey,
-          model,
-          messages,
-          tools,
-          temperature: resolvedTemperature,
-        });
+  const retries = resolveInt(maxRetries, "LLM_MAX_RETRIES", DEFAULT_MAX_RETRIES);
+  const baseDelay = resolveInt(
+    retryBaseDelayMs,
+    "LLM_RETRY_BASE_DELAY_MS",
+    DEFAULT_RETRY_BASE_DELAY_MS,
+  );
+  const attempts = retries + 1;
 
-  recordCall(result.usage, {
-    providerId: provider,
-    model,
-    latencyMs: Date.now() - startedAt,
-    statusCode: 200,
-    ...(meta || {}),
+  let lastError = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const startedAt = Date.now();
+    try {
+      const call = {
+        apiKey,
+        model,
+        messages,
+        tools,
+        temperature: resolvedTemperature,
+        signal,
+        timeoutMs,
+      };
+      const result =
+        provider === "anthropic"
+          ? await callAnthropic(call)
+          : await callOpenAiCompatible({ provider, ...call });
+
+      recordCall(result.usage, {
+        providerId: provider,
+        model,
+        latencyMs: Date.now() - startedAt,
+        statusCode: 200,
+        attempts: attempt,
+        ...(meta || {}),
+      });
+
+      return result;
+    } catch (err) {
+      lastError = err;
+      // Only transient provider/network faults are worth another attempt, and a
+      // user cancellation must always win over the retry policy.
+      if (!(err instanceof LlmCallError) || !err.retryable) throw err;
+      if (attempt === attempts || signal?.aborted) throw err;
+      await sleep(baseDelay * 2 ** (attempt - 1), signal);
+    }
+  }
+
+  throw lastError ?? new Error("Provider call failed.");
+}
+
+/**
+ * One bounded HTTP attempt.
+ *
+ * Caller cancellation and our own timeout both abort the fetch, but they mean
+ * different things: a cancellation must never be retried, a timeout should be.
+ */
+async function request(url, init, { signal, timeoutMs, providerId }) {
+  const controller = new AbortController();
+  const limit = resolveInt(timeoutMs, "LLM_TIMEOUT_MS", DEFAULT_TIMEOUT_MS);
+  let timedOut = false;
+
+  const timer =
+    limit > 0
+      ? setTimeout(() => {
+          timedOut = true;
+          controller.abort();
+        }, limit)
+      : null;
+  const forwardAbort = () => controller.abort();
+
+  if (signal) {
+    if (signal.aborted) controller.abort();
+    else signal.addEventListener("abort", forwardAbort, { once: true });
+  }
+
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (err) {
+    if (signal?.aborted) throw new LlmCallError("Call cancelled.", { providerId });
+    if (timedOut) {
+      throw new LlmCallError(`${labelFor(providerId)} timed out after ${limit} ms.`, {
+        retryable: true,
+        providerId,
+      });
+    }
+    throw new LlmCallError(`${labelFor(providerId)} request failed: ${describeError(err)}`, {
+      retryable: true,
+      providerId,
+    });
+  } finally {
+    if (timer) clearTimeout(timer);
+    signal?.removeEventListener("abort", forwardAbort);
+  }
+}
+
+function labelFor(providerId) {
+  return LABELS[providerId] || providerId;
+}
+
+function httpError(providerId, status, text) {
+  return new LlmCallError(
+    `${labelFor(providerId)} API ${status}: ${String(text || "").slice(0, 500)}`,
+    { status, retryable: RETRYABLE_STATUSES.has(status) || status >= 500, providerId },
+  );
+}
+
+function resolveInt(value, envKey, fallback) {
+  const parsed = Number.parseInt(value ?? process.env[envKey], 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function describeError(err) {
+  return err instanceof Error ? err.message : String(err);
+}
+
+/** Abortable backoff. Resolving early on abort is safe: the loop re-checks. */
+function sleep(ms, signal) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(resolve, ms);
+    if (signal) {
+      signal.addEventListener(
+        "abort",
+        () => {
+          clearTimeout(timer);
+          resolve();
+        },
+        { once: true },
+      );
+    }
   });
-
-  return result;
 }
 
 function ollamaBaseUrl() {
@@ -188,7 +371,16 @@ function ollamaNumCtx() {
   return OLLAMA_CTX_OPTIONS.includes(value) ? value : 32768;
 }
 
-async function callOpenAiCompatible({ provider, apiKey, model, messages, tools, temperature }) {
+async function callOpenAiCompatible({
+  provider,
+  apiKey,
+  model,
+  messages,
+  tools,
+  temperature,
+  signal,
+  timeoutMs,
+}) {
   const base = openAiBaseUrl()[provider];
   const body = { model, messages, temperature, stream: false };
 
@@ -206,18 +398,22 @@ async function callOpenAiCompatible({ provider, apiKey, model, messages, tools, 
     body.num_ctx = ollamaNumCtx();
   }
 
-  const res = await fetch(`${base}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+  const res = await request(
+    `${base}/chat/completions`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(body),
     },
-    body: JSON.stringify(body),
-  });
+    { signal, timeoutMs, providerId: provider },
+  );
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`${LABELS[provider]} API ${res.status}: ${text.slice(0, 500)}`);
+    throw httpError(provider, res.status, text);
   }
 
   const json = await res.json();
@@ -232,7 +428,7 @@ async function callOpenAiCompatible({ provider, apiKey, model, messages, tools, 
   };
 }
 
-async function callAnthropic({ apiKey, model, messages, tools, temperature }) {
+async function callAnthropic({ apiKey, model, messages, tools, temperature, signal, timeoutMs }) {
   const system = messages.filter((m) => m.role === "system").map((m) => m.content).join("\n\n");
   const rest = messages.filter((m) => m.role !== "system");
 
@@ -253,19 +449,23 @@ async function callAnthropic({ apiKey, model, messages, tools, temperature }) {
   }
 
   const base = String(process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com").replace(/\/+$/, "");
-  const res = await fetch(`${base}/v1/messages`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
+  const res = await request(
+    `${base}/v1/messages`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify(body),
     },
-    body: JSON.stringify(body),
-  });
+    { signal, timeoutMs, providerId: "anthropic" },
+  );
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`Anthropic API ${res.status}: ${text.slice(0, 500)}`);
+    throw httpError("anthropic", res.status, text);
   }
 
   const json = await res.json();

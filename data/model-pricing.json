@@ -1,0 +1,31 @@
+{
+  "_note": "List prices in USD per 1,000,000 tokens. Cloud figures are INDICATIVE seeds, not quotes: providers change rates without notice, so confirm them against your own billing page before trusting a total. Anything marked \"verified\": false is a placeholder. Local models (Ollama) genuinely cost nothing per token and are marked verified. To correct a rate without editing this file, create <userData>/model-pricing.json with the same shape; it replaces this table wholesale.",
+  "version": 1,
+  "updated": "2026-09-11",
+  "models": {
+    "deepseek/deepseek-v4-flash": {
+      "input": 0.28,
+      "cachedInput": 0.028,
+      "output": 0.42,
+      "verified": false
+    },
+    "openai/gpt-4o": {
+      "input": 2.5,
+      "cachedInput": 1.25,
+      "output": 10.0,
+      "verified": false
+    },
+    "anthropic/claude-sonnet-4-5": {
+      "input": 3.0,
+      "cachedInput": 0.3,
+      "output": 15.0,
+      "verified": false
+    },
+    "ollama/*": {
+      "input": 0,
+      "cachedInput": 0,
+      "output": 0,
+      "verified": true
+    }
+  }
+}

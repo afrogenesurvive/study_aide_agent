@@ -1,5 +1,6 @@
 import { normalizeCanonical, type CanonicalDefaults, type NormalizeResult } from "../syllabus/canonical";
 import { loadChatModule } from "./provider";
+import { sanitizeText } from "./sanitize";
 
 /**
  * LLM-assisted syllabus extraction (pasted text, and the PDF/DOCX fallback).
@@ -33,9 +34,6 @@ const SYSTEM_PROMPT = [
   "}",
 ].join("\n");
 
-/** Roughly 60k characters — comfortably inside a 32k-token context window. */
-const MAX_INPUT_CHARS = 60_000;
-
 export interface LlmExtractOptions {
   text: string;
   defaults?: CanonicalDefaults;
@@ -47,29 +45,12 @@ export interface LlmExtractResult extends NormalizeResult {
   usedLlm: boolean;
 }
 
-/**
- * Cheap, deterministic hardening before the text reaches the model.
- *
- * The full pattern-based scrubber (`scripts/sanitize.stub.mjs`) is wired in with
- * the MCP servers in phase 4; this covers the obvious cases in the meantime.
- */
-export function neutralize(text: string): string {
-  return String(text ?? "")
-    .replace(/\u0000/g, "")
-    .replace(/^```.*$/gm, "")
-    .replace(
-      /^[^\n]{0,40}\b(ignore (all )?(previous|prior|above) instructions|disregard .{0,20}instructions|you are now|new instructions?:)\b[^\n]*$/gim,
-      "[removed]",
-    )
-    .slice(0, MAX_INPUT_CHARS);
-}
-
 export async function extractSyllabusWithLlm({
   text,
   defaults = {},
   sourceLabel = "text",
 }: LlmExtractOptions): Promise<LlmExtractResult> {
-  const cleaned = neutralize(text).trim();
+  const cleaned = (await sanitizeText(text)).trim();
   if (!cleaned) {
     return { canonical: null, warnings: [], error: "There is no text to extract from.", usedLlm: false };
   }

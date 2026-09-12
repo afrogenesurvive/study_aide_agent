@@ -18,7 +18,9 @@ const EXPECTED_TABLES = [
   "overlay_connections",
   "overlay_theme_topics",
   "overlay_themes",
+  "quiz_questions",
   "quiz_results",
+  "quizzes",
   "schema_migrations",
   "study_plans",
   "study_sessions",
@@ -54,6 +56,8 @@ describe("migrations", () => {
     expect(rows[0].name).toBe("initial_schema");
     expect(rows[1].version).toBe(2);
     expect(rows[1].name).toBe("fsrs_and_scheduling");
+    expect(rows[2].version).toBe(3);
+    expect(rows[2].name).toBe("generation_and_quizzes");
     expect(databaseStatus(db, ":memory:").schemaVersion).toBe(LATEST_VERSION);
   });
 

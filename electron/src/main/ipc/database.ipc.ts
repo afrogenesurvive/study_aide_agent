@@ -105,7 +105,16 @@ export function registerDatabaseIpc(): void {
 function recordCounts(): Record<string, number> {
   const db = tryGetDb();
   if (!db) return {};
-  const tables = ["syllabus", "syllabus_topics", "syllabus_imports", "flashcards", "llm_usage"];
+  const tables = [
+    "syllabus",
+    "syllabus_topics",
+    "syllabus_imports",
+    "flashcards",
+    "quizzes",
+    "quiz_questions",
+    "llm_usage",
+    "generation_jobs",
+  ];
   const counts: Record<string, number> = {};
   for (const table of tables) {
     try {

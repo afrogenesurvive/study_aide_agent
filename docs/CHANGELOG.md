@@ -5,6 +5,29 @@ current branch. Newest first.
 
 ---
 
+## [0.0.2-1] — 2026-09-12
+
+Phase 3 (material generation), first half. **Nothing user-visible yet** — the
+Generate screen is still a placeholder, and none of this has been run end to end.
+
+- Language model calls are now bounded and retried: each attempt has a timeout,
+  transient failures are retried with backoff, and cancelling stops the run
+  immediately instead of waiting for the retry policy to finish.
+- Per-call costs are recorded and surfaced in the Developer panel. Rates are
+  computed locally from a table that ships with the app, and **those figures are
+  indicative placeholders rather than quotes** — treat any total as an estimate
+  until you confirm them. A model with no known rate shows no cost at all rather
+  than a misleading zero.
+- Text that reaches the model is scrubbed on the way in. The built-in scrub always
+  applies; a private pattern set can be layered on top.
+- Groundwork for generation: generated flashcards and multiple-choice quizzes now
+  have somewhere to live, and a generation run is tracked from start to finish so
+  it can be reviewed before anything is saved.
+- New settings for call timeouts and retries, and for generation limits (cards per
+  topic, generation temperature).
+
+---
+
 ## [0.0.1-3] — 2026-09-11
 
 Documentation only — no application changes.

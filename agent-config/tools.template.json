@@ -174,5 +174,86 @@
       },
       "required": ["title"]
     }
+  },
+  {
+    "name": "generate_flashcards",
+    "description": "Generate question/answer cards for one syllabus topic. Runs in the agent runner, one call per topic, and never writes to the database — the candidates wait at the review gate.",
+    "terminal": false,
+    "handler": "direct",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "topicCode": { "type": "string" },
+        "topicTitle": { "type": "string" },
+        "subject": { "type": "string", "enum": ["math", "chemistry", "biology"] },
+        "section": { "type": "string" },
+        "overlayThemes": { "type": "array", "items": { "type": "string" } },
+        "maxCards": { "type": "integer", "minimum": 1, "maximum": 50, "default": 8 }
+      },
+      "required": ["topicCode", "topicTitle"]
+    }
+  },
+  {
+    "name": "generate_quiz",
+    "description": "Generate multiple-choice items for one syllabus topic. One call per topic, producing a quiz per topic; candidates wait at the review gate alongside the flashcards.",
+    "terminal": false,
+    "handler": "direct",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "topicCode": { "type": "string" },
+        "topicTitle": { "type": "string" },
+        "subject": { "type": "string", "enum": ["math", "chemistry", "biology"] },
+        "section": { "type": "string" },
+        "overlayThemes": { "type": "array", "items": { "type": "string" } },
+        "questionCount": { "type": "integer", "minimum": 1, "maximum": 20, "default": 5 }
+      },
+      "required": ["topicCode", "topicTitle"]
+    }
+  },
+  {
+    "name": "review_gate",
+    "description": "Block until the user accepts, edits or rejects the generated material. Nothing reaches the database before this clears. Not a side effect itself, so it is not terminal.",
+    "terminal": false,
+    "handler": "direct",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "jobId": { "type": "integer" },
+        "cardCount": { "type": "integer" },
+        "questionCount": { "type": "integer" }
+      },
+      "required": ["jobId"]
+    }
+  },
+  {
+    "name": "materials_save",
+    "description": "Write the accepted cards and quizzes to the database, attaching each to its syllabus topic. Terminal — it runs only after the review gate approves, and only in the main process.",
+    "terminal": true,
+    "handler": "direct",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "jobId": { "type": "integer" },
+        "cards": { "type": "array", "items": { "type": "object" } },
+        "questions": { "type": "array", "items": { "type": "object" } }
+      },
+      "required": ["jobId"]
+    }
+  },
+  {
+    "name": "socratic_reply",
+    "description": "Produce the next Socratic question for the current topic. Runs in the agent runner; lands in phase 6.",
+    "terminal": false,
+    "handler": "direct",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "topicCode": { "type": "string" },
+        "topicTitle": { "type": "string" },
+        "history": { "type": "array", "items": { "type": "object" } }
+      },
+      "required": ["topicCode"]
+    }
   }
 ]

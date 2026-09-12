@@ -3,7 +3,7 @@
   "max_retries": 3,
   "retry_base_delay_ms": 4000,
   "llm_context_window": 0,
-  "terminal_tools": ["gmail_send_message", "calendar_create_event"],
+  "terminal_tools": ["gmail_send_message", "calendar_create_event", "materials_save"],
   "pipelines": [
     {
       "name": "material-generation",
@@ -44,7 +44,7 @@
           "id": "step-3",
           "toolName": "generate_quiz",
           "label": "Generate quiz items",
-          "description": "Derive mixed-topic quiz items from the flashcards produced in the previous step. Algorithmic where possible so no extra tokens are spent.",
+          "description": "One call per topic, producing a short multiple-choice quiz for that topic. Distractors need a model — an algorithmic derivation cannot invent plausible wrong answers — so this is a second batched call rather than a transformation of step 2.",
           "systemPromptTemplate": "",
           "hintTemplate": "",
           "enabled": true,

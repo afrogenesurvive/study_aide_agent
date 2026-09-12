@@ -21,14 +21,14 @@ for local setup.
 
 ## Status
 
-**Phase 0 (foundation) and phase 1 (data + syllabus) are implemented.**
+**Phases 0–2 are implemented. Phase 3 is part-built.**
 
 | Phase | Scope | State |
 | :-- | :-- | :-- |
 | 0 | Electron + React shell, three-layer config, logging, UI state, Appearance / Configuration / Developer / Storage panels | ✅ done |
 | 1 | SQLite schema + migrations, syllabus import (JSON/CSV/Markdown/PDF/DOCX/paste), diff/merge/rollback, coverage, Syllabus panel | ✅ done |
-| 2 | FSRS scheduling, review + session views, Dashboard | ⏳ next |
-| 3 | LLM material generation, agent runner, review gate | ⏳ |
+| 2 | FSRS scheduling, review + session views, Dashboard | ✅ done |
+| 3 | LLM material generation, agent runner, review gate | 🚧 in progress |
 | 4 | Gmail + Calendar MCP servers, Google settings | ⏳ |
 | 5 | Notification engine, Google Tasks, native push | ⏳ |
 | 6 | Socratic dialogue, analytics, printables | ⏳ |

@@ -1,6 +1,6 @@
 {
   "name": "study-aide-agent",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "description": "Study Aide — overlap-based interleaving, FSRS, valence tagging and Socratic dialogue for A-level Math, Chemistry and Biology.",
   "license": "MIT",

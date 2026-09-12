@@ -4,6 +4,8 @@ import { Validator } from "@cfworker/json-schema";
 import { addLog } from "./logger";
 import { agentConfigDefaultsDir, agentConfigDir, resourcePath } from "./paths";
 import { APP_VERSION } from "./config";
+import { parsePipelineFile, type PipelineFile } from "../../services/generation/pipeline";
+import { mergeToolLists, parseToolList, type ToolDef } from "../../services/generation/tools";
 import type { AgentConfigFilePayload, AgentConfigPayload } from "../shared/ipc-types";
 
 /**
@@ -14,9 +16,8 @@ import type { AgentConfigFilePayload, AgentConfigPayload } from "../shared/ipc-t
  *   - live  `<userData>/agent-config/*.json|*.md` ← user-editable, gitignored
  *   - snap  `<userData>/agent-config/.defaults/`  ← restore target
  *
- * Nothing consumes these yet (the agent runner arrives in phase 3), but the
- * directory is seeded on first launch so the runner has something to read, and
- * the Dev panel can already preview and validate the files.
+ * Phase 3 consumes these: `loadToolDefinitions()` and `loadPipelineFile()` are
+ * what the agent runner plans from.
  */
 
 export type AgentConfigName = "pipeline" | "tools" | "system-prompt";
@@ -139,9 +140,12 @@ interface AgentSchema {
 }
 
 function loadSchema(): AgentSchema | null {
+  // The schema describes what *this build's code* accepts, so it is always read
+  // from the shipped template. A stale `<userData>` copy would reject newly
+  // shipped tools and fields, and no user ever needs to edit it.
   const text =
-    readIfExists(path.join(agentConfigDir(), SCHEMA_FILE)) ??
-    readIfExists(path.join(templateDir(), SCHEMA_FILE));
+    readIfExists(path.join(templateDir(), SCHEMA_FILE)) ??
+    readIfExists(path.join(agentConfigDir(), SCHEMA_FILE));
   if (!text) return null;
   try {
     return JSON.parse(text) as AgentSchema;
@@ -177,6 +181,102 @@ export function validateAgentConfigFile(name: AgentConfigName, content: string):
   return result.valid
     ? []
     : result.errors.map((error) => `${error.instanceLocation || "/"}: ${error.error}`).slice(0, 20);
+}
+
+// ── loading (what the agent runner plans from) ───────────────────────────────
+
+interface ParsedJsonFile {
+  raw: unknown;
+  source: "live" | "template" | "none";
+  warnings: string[];
+}
+
+function parseJson(text: string): { value: unknown; error?: string } {
+  try {
+    return { value: JSON.parse(text) };
+  } catch (err) {
+    return { value: null, error: describe(err) };
+  }
+}
+
+/** The live file when it parses, otherwise the shipped template. */
+function readJsonFile(liveName: string, templateName: string): ParsedJsonFile {
+  const warnings: string[] = [];
+
+  const liveText = readIfExists(path.join(agentConfigDir(), liveName));
+  if (liveText !== null) {
+    const live = parseJson(liveText);
+    if (!live.error) return { raw: live.value, source: "live", warnings };
+    warnings.push(`${liveName} is not valid JSON (${live.error}); using the shipped template.`);
+  }
+
+  const templateText = readIfExists(path.join(templateDir(), templateName));
+  if (templateText === null) {
+    warnings.push(`Neither ${liveName} nor ${templateName} could be read.`);
+    return { raw: null, source: "none", warnings };
+  }
+
+  const template = parseJson(templateText);
+  if (template.error) {
+    warnings.push(`${templateName} is not valid JSON: ${template.error}`);
+    return { raw: null, source: "none", warnings };
+  }
+  return { raw: template.value, source: "template", warnings };
+}
+
+function readTemplateJson(name: string): { raw: unknown; warnings: string[] } {
+  const text = readIfExists(path.join(templateDir(), name));
+  if (text === null) return { raw: null, warnings: [`${name} is missing from the shipped templates.`] };
+  const parsed = parseJson(text);
+  return parsed.error
+    ? { raw: null, warnings: [`${name} is not valid JSON: ${parsed.error}`] }
+    : { raw: parsed.value, warnings: [] };
+}
+
+/**
+ * The tool list a run should use: the user's live file, plus any shipped tool it
+ * is missing.
+ *
+ * Seeding never overwrites an existing live file, so an installation created
+ * before phase 3 has no `generate_flashcards` in its `tools.json`. Merging the
+ * template in (additively only) is what keeps that install runnable without
+ * discarding the user's own edits.
+ */
+export function loadToolDefinitions(): { tools: ToolDef[]; added: string[]; warnings: string[] } {
+  const live = readJsonFile("tools.json", "tools.template.json");
+  const template = readTemplateJson("tools.template.json");
+
+  const liveParsed = parseToolList(live.raw ?? []);
+  const templateParsed = parseToolList(template.raw);
+  const { tools, added } = mergeToolLists(liveParsed.tools, templateParsed.tools);
+
+  return {
+    tools,
+    added,
+    warnings: [
+      ...live.warnings,
+      ...template.warnings,
+      ...liveParsed.warnings.map((w) => `tools.json: ${w}`),
+      ...templateParsed.warnings.map((w) => `tools.template.json: ${w}`),
+    ],
+  };
+}
+
+/** The pipeline definition file, live if it parses and the template otherwise. */
+export function loadPipelineFile(): {
+  file: PipelineFile | null;
+  source: "live" | "template" | "none";
+  warnings: string[];
+} {
+  const live = readJsonFile("pipeline.json", "pipeline.template.json");
+  if (live.raw === null) return { file: null, source: live.source, warnings: live.warnings };
+
+  const { file, warnings } = parsePipelineFile(live.raw);
+  return {
+    file,
+    source: live.source,
+    warnings: [...live.warnings, ...warnings.map((w) => `pipeline.json: ${w}`)],
+  };
 }
 
 // ── read / write ─────────────────────────────────────────────────────────────

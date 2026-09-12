@@ -45,7 +45,8 @@ export type LogSource =
   | "llm"
   | "mcp"
   | "review"
-  | "scheduler";
+  | "scheduler"
+  | "generate";
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
 export interface LogEntry {

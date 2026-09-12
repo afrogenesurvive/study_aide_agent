@@ -19,6 +19,10 @@ safe/calendars.json
 tokens/
 tokens/gmail-token.json
 
+# ── Prompt-injection patterns (private, NEVER commit) ──
+shared/sanitize.private.mjs
+scripts/sanitize.private.mjs
+
 # ── Logs ──
 logs/
 logs/**/*.jsonl

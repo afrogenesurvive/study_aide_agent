@@ -18,10 +18,12 @@ export interface Migration {
 
 import { migration001Initial } from "./001_initial";
 import { migration002FsrsAndScheduling } from "./002_fsrs_and_scheduling";
+import { migration003GenerationAndQuizzes } from "./003_generation_and_quizzes";
 
 export const MIGRATIONS: Migration[] = [
   migration001Initial,
   migration002FsrsAndScheduling,
+  migration003GenerationAndQuizzes,
 ].sort((a, b) => a.version - b.version);
 
 export const LATEST_VERSION = MIGRATIONS.reduce((max, m) => Math.max(max, m.version), 0);

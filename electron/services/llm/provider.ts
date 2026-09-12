@@ -39,10 +39,6 @@ export function setChatModuleLoader(fn: (() => Promise<ChatModule>) | null): voi
   cached = null;
 }
 
-export function hasChatModule(): boolean {
-  return loader !== null;
-}
-
 /** Load (and memoise) the provider. Throws a user-facing error when unset. */
 export async function loadChatModule(): Promise<ChatModule> {
   if (cached) return cached;

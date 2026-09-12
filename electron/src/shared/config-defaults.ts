@@ -25,6 +25,20 @@ export const DEFAULTS: AppConfig = {
   OLLAMA_MODEL: "",
   OLLAMA_NUM_CTX: "32768",
 
+  // Retry/timeout policy for provider calls. `LLM_MAX_RETRIES` counts retries
+  // *after* the first attempt, so 3 means up to 4 requests.
+  LLM_TIMEOUT_MS: "120000",
+  LLM_MAX_RETRIES: "3",
+  LLM_RETRY_BASE_DELAY_MS: "4000",
+
+  // ── Generation (agent runner) ──
+  GENERATION_MAX_CARDS_PER_TOPIC: "8",
+  /** Warmer than `LLM_TEMPERATURE`: cards need variety, extraction needs fidelity. */
+  GENERATION_TEMPERATURE: "0.4",
+  AGENT_RUNNER_ENABLED: "true",
+  /** Ceiling for one whole pipeline run, separate from the per-call timeout. */
+  AGENT_RUNNER_TIMEOUT_MS: "300000",
+
   // ── Google (Gmail + Calendar + Tasks, one OAuth2 token) ──
   GMAIL_CLIENT_ID: "",
   GMAIL_CLIENT_SECRET: "",
@@ -156,6 +170,14 @@ export function checkConfigValues(config: AppConfig): ConfigCheckResult {
   const startTime = String(config.STUDY_START_TIME || "").trim();
   if (startTime && !/^([01]?\d|2[0-3]):[0-5]\d$/.test(startTime)) {
     warnings.push("STUDY_START_TIME is not a 24-hour HH:MM time — 19:00 will be used instead.");
+  }
+  const cardsPerTopic = Number(config.GENERATION_MAX_CARDS_PER_TOPIC);
+  if (Number.isFinite(cardsPerTopic) && (cardsPerTopic < 1 || cardsPerTopic > 50)) {
+    warnings.push("GENERATION_MAX_CARDS_PER_TOPIC outside 1–50 is unusual; 8 is the default.");
+  }
+  const genTemp = Number(config.GENERATION_TEMPERATURE);
+  if (Number.isFinite(genTemp) && (genTemp < 0 || genTemp > 2)) {
+    warnings.push("GENERATION_TEMPERATURE must be between 0 and 2; 0.4 will be used instead.");
   }
 
   return { ok: missing.length === 0, missing, warnings, activeProvider: provider };
