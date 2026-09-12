@@ -6,15 +6,14 @@
 > system**, and an **Electron UI/config/LLM-provider foundation** derived from
 > `ai_transcription_agent` + `copilot_agentic_task_helper`.
 
-**Status:** phases 0–2 complete, phase 3 part-built · **Date:** 2026-09-12 (plan v2: 2026-09-09) · **Target:** A-level Math / Chemistry / Biology
+**Status:** phases 0–3 complete · **Date:** 2026-09-12 (plan v2: 2026-09-09) · **Target:** A-level Math / Chemistry / Biology
 
-> **Progress:** Phases 0 (foundation), 1 (data + syllabus) and 2 (FSRS +
-> scheduling) are built and verified. Phase 3 (LLM provider & generation) is
-> **part-built**: the provider policy, the schema, the repositories, the pipeline
-> engine and the agent runner have landed, but the orchestration layer, the IPC
-> surface and the Generate panel have not — so none of phase 3 is reachable from
-> the interface yet, and none of it has been exercised against a real model. See
-> [`CHANGELOG.md`](CHANGELOG.md) for what shipped and
+> **Progress:** Phases 0 (foundation), 1 (data + syllabus), 2 (FSRS +
+> scheduling) and 3 (LLM provider & generation) are built and verified. Phase 3
+> now reaches the interface: the Generate panel runs a pipeline, the review gate
+> stands between the model and the database, and a generated quiz can be taken in
+> the Review section. It has **not** been run against a real model — see the note
+> under phase 3 and [`CHANGELOG.md`](CHANGELOG.md) for what shipped, and
 > [`development_environment.md`](development_environment.md) for local setup.
 > Implementation notes and the deviations from this plan are at the end of §10.
 
@@ -589,7 +588,7 @@ Notable refinements to the plan above:
 - Cards are authored by hand until phase 3 supplies generation.
 - The StatusBar activity pill was deferred; the Session panel carries the clock.
 
-### Phase 3 — LLM provider & generation (Days 13–17) 🚧 **part-built**
+### Phase 3 — LLM provider & generation (Days 13–17) ✅ **complete**
 - `shared/model-provider.mjs` + `usage-tracker.mjs` adapted.
 - `agent-runner/` + `agent-config/pipeline` for `material-generation`; review gate before save.
 - **Generate** panel (syllabus-grounded flashcards/quizzes).
@@ -597,9 +596,16 @@ Notable refinements to the plan above:
 Dispatched as 3A (provider policy + costs + scrubbing), 3B (schema +
 repositories), 3C (pipeline engine + tool registry), 3D (agent-runner child),
 3E (orchestration + gate), 3F (IPC), 3G (Generate panel + quiz runner) and 3H
-(tests + docs). **3A–3D have landed; 3E–3H have not**, so none of the three
-deliverables above is reachable from the interface yet, and no phase 3 code path
-has been run against a real model.
+(tests + docs). **All eight sub-phases have landed**, so all three deliverables
+above are reachable from the interface.
+
+**One gap, deliberately recorded:** no phase 3 code path has been run against a
+real model. Everything is covered by unit tests and a fake transport, the app
+boots with the pipeline wired up, and the child is proven end to end up to the
+provider's key check — but prompt quality, JSON compliance and real cost are
+unmeasured. The Generate panel disables Run and names the missing setting when no
+provider is configured, so the app is honest about it rather than failing
+obscurely.
 
 Notable refinements to the plan above:
 - The provider gained a call policy the plan never specified: a per-attempt
@@ -634,6 +640,27 @@ Notable refinements to the plan above:
   Electron — no test ever starts a process. There is no PID file: the manager holds
   the child handle, and the reference implementation's PID file only existed because
   its runner was a long-lived daemon.
+- **Orchestration is split into planning and doing.** `prepareGeneration()` (scope
+  + pipeline + tool registry, no side effects) is what the panel calls to explain
+  what *would* happen, and `startGeneration()` calls it before writing anything.
+  That is what lets the Run button be disabled with a reason instead of failing
+  after the click.
+- **The commit closes the gate before it writes.** `commitGeneration()` runs
+  `markCommitted()` first and throws when the row is not `awaiting_review`, inside
+  a savepoint, so a double submit or a stale gate cannot duplicate the set and a
+  failure partway through leaves the job still awaiting review.
+- `GenerationRequest.autoCommit` was **deleted** rather than implemented: the plan
+  never asked for a gate bypass, and phase 3 always reviews.
+- **Quiz-taking is a sub-tab of the Review panel**, not a new nav item. A quiz is
+  another grip on the same topic as the card loop, and `PanelId` / `NAV_ITEMS`
+  stay as they were.
+- Generation options deliberately carry **no whole-run timeout**: that belongs to
+  the runner manager, which re-reads `AGENT_RUNNER_TIMEOUT_MS` before each run. Two
+  ceilings would be two timers racing to stop the same child. `timeZone` is absent
+  for a related reason — no prompt in phase 3 renders a date, and the scheduler and
+  FSRS layers already consume `TIMEZONE`.
+- `stop` and `quiz` joined the icon set (the icon map is `Record<IconName, string>`,
+  so TS forces both).
 
 ### Phase 4 — Gmail + Calendar MCP (Days 18–22)
 - `mcp/lib/google-client.mjs` (shared auth/API core) + `mcp/gmail` + `mcp/calendar`.

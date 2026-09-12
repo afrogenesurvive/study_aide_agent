@@ -279,6 +279,35 @@ export function loadPipelineFile(): {
   };
 }
 
+/**
+ * The global grounding prompt, prepended to every generation prompt.
+ *
+ * The same live-then-template fallback as the JSON files, but read as text:
+ * `readJsonFile` parses, and a system prompt is markdown. An empty live file is
+ * treated as "not set" rather than as a deliberate instruction to say nothing.
+ */
+export function loadSystemPrompt(): {
+  text: string;
+  source: "live" | "template" | "none";
+  warnings: string[];
+} {
+  const warnings: string[] = [];
+  const liveName = "system-prompt.md";
+  const templateName = "system-prompt.template.md";
+
+  const liveText = readIfExists(path.join(agentConfigDir(), liveName));
+  if (liveText !== null && liveText.trim()) return { text: liveText, source: "live", warnings };
+  if (liveText !== null) warnings.push(`${liveName} is empty; using the shipped template.`);
+
+  const templateText = readIfExists(path.join(templateDir(), templateName));
+  if (templateText === null || !templateText.trim()) {
+    warnings.push(`Neither ${liveName} nor ${templateName} could be read.`);
+    return { text: "", source: "none", warnings };
+  }
+
+  return { text: templateText, source: "template", warnings };
+}
+
 // ── read / write ─────────────────────────────────────────────────────────────
 
 export function getAgentConfig(): AgentConfigPayload {

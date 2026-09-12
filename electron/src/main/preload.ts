@@ -53,6 +53,19 @@ import type {
   StudySessionRow,
   TodaySummary,
 } from "../shared/scheduler-types";
+import type {
+  GenerationActionResult,
+  GenerationCommitResult,
+  GenerationJobDetail,
+  GenerationJobSummary,
+  GenerationOutput,
+  GenerationProgress,
+  GenerationRequest,
+  GenerationRunOutcome,
+  GenerationStatusPayload,
+  GenerationTopicOption,
+} from "../shared/generation-types";
+import type { QuizAnswer, QuizAttemptResult, QuizDetail, QuizSummary } from "../shared/quiz-types";
 
 /**
  * The entire renderer-facing surface.
@@ -265,6 +278,43 @@ const api = {
     ipcRenderer.invoke("session:reviews", sessionId),
   getSessionReviewCount: (sessionId: number): Promise<number> =>
     ipcRenderer.invoke("session:reviewCount", sessionId),
+
+  // ── generation ──
+  getGenerationStatus: (): Promise<GenerationStatusPayload> =>
+    ipcRenderer.invoke("generation:status"),
+  listGenerationSyllabi: (): Promise<SyllabusSummary[]> => ipcRenderer.invoke("generation:syllabi"),
+  getGenerationTopics: (syllabusId: number): Promise<GenerationTopicOption[]> =>
+    ipcRenderer.invoke("generation:topics", syllabusId),
+  startGeneration: (request: GenerationRequest): Promise<GenerationRunOutcome> =>
+    ipcRenderer.invoke("generation:start", request),
+  cancelGeneration: (jobId: number): Promise<GenerationActionResult> =>
+    ipcRenderer.invoke("generation:cancel", jobId),
+  getGenerationJob: (jobId: number): Promise<GenerationJobDetail | null> =>
+    ipcRenderer.invoke("generation:job", jobId),
+  commitGeneration: (jobId: number, output: GenerationOutput): Promise<GenerationCommitResult> =>
+    ipcRenderer.invoke("generation:commit", jobId, output),
+  rejectGeneration: (jobId: number): Promise<GenerationActionResult> =>
+    ipcRenderer.invoke("generation:reject", jobId),
+  discardGeneration: (jobId: number): Promise<GenerationActionResult> =>
+    ipcRenderer.invoke("generation:discard", jobId),
+  getGenerationHistory: (): Promise<GenerationJobSummary[]> =>
+    ipcRenderer.invoke("generation:history"),
+  onGenerationProgress: (callback: (progress: GenerationProgress) => void): (() => void) => {
+    const listener = (_event: unknown, progress: GenerationProgress) => callback(progress);
+    ipcRenderer.on("generation:progress", listener);
+    return () => ipcRenderer.removeListener("generation:progress", listener);
+  },
+
+  // ── quizzes ──
+  listQuizzes: (options?: {
+    includeArchived?: boolean;
+    topicId?: number;
+    limit?: number;
+  }): Promise<QuizSummary[]> => ipcRenderer.invoke("quiz:list", options),
+  getQuiz: (quizId: number): Promise<QuizDetail | null> =>
+    ipcRenderer.invoke("quiz:get", quizId),
+  recordQuizAttempt: (quizId: number, answers: QuizAnswer[]): Promise<QuizAttemptResult> =>
+    ipcRenderer.invoke("quiz:record", quizId, answers),
 
   // ── notifications ──
   showNotification: (title: string, body: string): Promise<boolean> =>

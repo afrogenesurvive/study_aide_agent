@@ -1,0 +1,212 @@
+/* Generate — the scope picker, the run, the review gate, and the quiz runner. */
+
+.generate-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Toggle chips. `.chip` already exists as a static label; these make it a
+   control, which is why the button reset lives here rather than in the shared
+   form styles. */
+.chip--button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.8em;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease;
+}
+
+.chip--button:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
+.chip--active {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.chip--button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ── scope picker ─────────────────────────────────────────────────────────── */
+
+.generate-topic__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.generate-topics {
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.check-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.check-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 0.86em;
+  cursor: pointer;
+}
+
+.check-row:hover {
+  background: var(--surface-hover);
+}
+
+.check-row input {
+  margin: 0;
+}
+
+/* ── the run ──────────────────────────────────────────────────────────────── */
+
+.generate-progress {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.generate-progress__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 0.86em;
+}
+
+.generate-progress__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── the review gate ──────────────────────────────────────────────────────── */
+
+.generate-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.generate-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.generate-choices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.generate-choices li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.generate-choice--correct {
+  color: var(--color-green);
+}
+
+/* ── the quiz runner ──────────────────────────────────────────────────────── */
+
+.quiz-runner {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.quiz-runner__question {
+  font-size: 1.05em;
+  margin: 0;
+}
+
+.quiz-runner__choices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quiz-choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.quiz-choice:hover:not(:disabled) {
+  border-color: var(--accent-border);
+  background: var(--surface-hover);
+}
+
+.quiz-choice:disabled {
+  cursor: default;
+}
+
+.quiz-choice--correct {
+  border-color: color-mix(in srgb, var(--color-green) 45%, transparent);
+  color: var(--color-green);
+}
+
+.quiz-choice--wrong {
+  border-color: color-mix(in srgb, var(--color-red) 45%, transparent);
+  color: var(--color-red);
+}
+
+.quiz-choice__label {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.78em;
+}

@@ -117,6 +117,12 @@ Provider settings resolve on every call, so changing the model in Settings takes
 effect without a restart. If the selected provider has no API key, the call fails
 fast with a message naming the missing setting rather than a generic error.
 
+A generation run happens in a separate process that makes model calls and nothing
+else. It never opens your database: the app writes every record, and **nothing is
+written at all until you approve it** in the review step. A run that is
+interrupted is marked as failed the next time the app starts rather than sitting
+in your history as "running" forever.
+
 Anything that reaches the model is scrubbed first. The built-in scrub always
 strips null bytes, code fences and the common instruction-override phrasings, and
 truncates long input; a private pattern set can be layered on top of it, and its
@@ -139,6 +145,8 @@ A model with no known rate is shown with no cost at all. A zero would read as
 npm run types && npm test && npm run build
 ```
 
+Current expected: 3 TypeScript projects clean, 561 tests across 27 files.
+
 Then launch the app and check the Developer panel: you should see a startup line,
 a configuration line, and a `Database ready` line reporting the schema version,
 table count and journal mode. That last line appears only on the first run for a
@@ -150,14 +158,21 @@ Opening `electron/dist/renderer/index.html` in a browser renders the shell. Ever
 IPC call is optional, so it degrades to "Database unavailable" / "LLM not
 configured" and is useful for checking layout and styling changes quickly.
 
+### Checking generation without a key
+
+With no API key configured, a run stops before it starts and names the setting
+that is missing. That is the honest end of the path without a provider: the model
+calls themselves are covered by tests against a stand-in, not by a live run.
+
 ## Current limitations
 
 - macOS is the only platform this has been exercised on. Windows and Linux paths
   are written but untested.
 - No packaging, auto-update or release pipeline yet — that is phase 7.
-- Material generation is **half-built**: the database schema, the pipeline engine
-  and the provider layer are in place and covered by unit tests, but the Generate
-  screen and the review gate have not been written, so none of that has been run
-  end to end yet.
+- **Material generation has never run against a real model.** The whole path —
+  scope, pipeline, review gate, save — is wired up and unit-tested, but no
+  generated card in this build came from a live model, so prompt quality, JSON
+  compliance and real costs are unmeasured. Everything is verified up to the
+  provider's key check.
 - The cost figures described above have never been reconciled against a real
   provider bill.

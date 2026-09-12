@@ -28,6 +28,57 @@ Generate screen is still a placeholder, and none of this has been run end to end
 
 ---
 
+## [0.0.2-2] — 2026-09-12
+
+Phase 3 — material generation. The **Generate** section is now real: choose a
+scope, run the model, review what came back, and only then save it. A generated
+quiz can be taken in the Review section's new **Quiz** tab.
+
+**Nothing here has been run against a real model yet.** Every path is covered by
+tests against a stand-in for the model, and the app starts with the pipeline wired
+up, but no flashcard in this build was written by a language model. With no API key
+a run stops before it begins and names the setting that is missing.
+
+### Added
+
+**Generate**
+
+- Pick a scope — a whole syllabus, one section, or individual topics — for one or
+  several syllabi at once. Topics always come from your syllabus, never free-typed.
+- Runs happen one model call per topic, with live progress showing which call is in
+  flight and how many are left, and elapsed time. **Stop** cancels a run; anything
+  already generated survives.
+- **Nothing is saved automatically.** Cards and questions appear in a review step
+  where you can edit either in place, drop individual items, then save — or reject
+  the run, which keeps it in the history, or discard it, which removes it.
+- Generation runs in a separate process that makes model calls and nothing else.
+  It has no access to your database: the app writes every record, so there is one
+  writer and generated material can never bypass the review step.
+- Each saved quiz attaches to its syllabus topic and records an attempt, so a quiz
+  is scheduled context rather than a stray document.
+- A switch to turn the whole feature off, a per-run override for cards per topic,
+  and a call timeout / retry policy that applies to generation like any other call.
+- Costs from generation runs appear in the Developer panel alongside every other
+  call. A model with no known rate still shows no cost rather than a misleading
+  zero.
+
+**Review**
+
+- New **Quiz** tab: one question at a time, immediate feedback with the
+  explanation, a running score, and a summary at the end.
+
+### Fixed
+
+- A generation run interrupted by a crash or a force-quit is now marked as failed
+  the next time the app starts, instead of sitting in your history as "running"
+  forever.
+- The Review panel's remembered tab is validated, so a stale or hand-edited value
+  no longer leaves the panel blank.
+- Generation prompts that asked for a specific number of quiz questions were being
+  reported as containing a typo'd placeholder.
+
+---
+
 ## [0.0.1-3] — 2026-09-11
 
 Documentation only — no application changes.
@@ -132,7 +183,7 @@ Bug fixes for the syllabus importer and the Developer panel.
 
 ---
 
-## [0.0.2-1] — 2026-09-10
+## [0.0.2-0] — 2026-09-10
 
 First working build. Implements phases 0 and 1 of
 [`study_aide_implementation_plan.md`](study_aide_implementation_plan.md).

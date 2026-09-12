@@ -5,15 +5,27 @@ import { useUiStateValue } from "../../hooks/useUiState";
 import type { DueCard, DueSummary, ReviewStats } from "../../../shared/review-types";
 import { AddCardForm } from "./AddCardForm";
 import { CardBrowser } from "./CardBrowser";
+import { QuizRunner } from "./QuizRunner";
 import { ReviewSession } from "./ReviewSession";
 
-type SubTab = "due" | "cards" | "add";
+type SubTab = "due" | "cards" | "quiz" | "add";
 
 const SUB_TABS: Array<{ id: SubTab; label: string }> = [
   { id: "due", label: "Due" },
   { id: "cards", label: "Cards" },
+  { id: "quiz", label: "Quiz" },
   { id: "add", label: "Add" },
 ];
+
+/**
+ * The persisted sub-tab is whatever `ui-state.json` happens to hold, which may
+ * predate this tab or have been edited by hand, and `useUiStateValue` casts
+ * without checking. An unrecognised value leaves every branch false and renders
+ * an empty panel, so it is narrowed here.
+ */
+function isSubTab(value: unknown): value is SubTab {
+  return SUB_TABS.some((tab) => tab.id === value);
+}
 
 /**
  * The Review section: the spaced-repetition loop.
@@ -24,7 +36,8 @@ const SUB_TABS: Array<{ id: SubTab; label: string }> = [
  * card can change what is due.
  */
 export function ReviewPanel({ onSaved }: { onSaved: (message: string) => void }) {
-  const [subTab, setSubTab] = useUiStateValue<SubTab>("review.subTab", "due");
+  const [storedSubTab, setSubTab] = useUiStateValue<SubTab>("review.subTab", "due");
+  const subTab: SubTab = isSubTab(storedSubTab) ? storedSubTab : "due";
   const [summary, setSummary] = useState<DueSummary | null>(null);
   const [queue, setQueue] = useState<DueCard[]>([]);
   const [stats, setStats] = useState<ReviewStats | null>(null);
@@ -85,19 +98,28 @@ export function ReviewPanel({ onSaved }: { onSaved: (message: string) => void })
         ))}
       </div>
 
-      {loading ? (
-        <p className="muted">Loading your cards…</p>
-      ) : (
-        <div className="panel__body">
-          {subTab === "due" ? (
-            <ReviewSession queue={queue} onChanged={refresh} onSaved={onSaved} />
-          ) : null}
-          {subTab === "cards" ? (
-            <CardBrowser onChanged={refresh} onSaved={onSaved} />
-          ) : null}
-          {subTab === "add" ? <AddCardForm onChanged={refresh} onSaved={onSaved} /> : null}
-        </div>
-      )}
+      {/*
+        The quiz view is deliberately outside the `loading` gate: it loads its own
+        quizzes and needs neither the due queue nor the card summary, so making it
+        wait for a card fetch would be a lie about what it is waiting for.
+      */}
+      <div className="panel__body">
+        {subTab === "quiz" ? (
+          <QuizRunner onSaved={onSaved} />
+        ) : loading ? (
+          <p className="muted">Loading your cards…</p>
+        ) : (
+          <>
+            {subTab === "due" ? (
+              <ReviewSession queue={queue} onChanged={refresh} onSaved={onSaved} />
+            ) : null}
+            {subTab === "cards" ? (
+              <CardBrowser onChanged={refresh} onSaved={onSaved} />
+            ) : null}
+            {subTab === "add" ? <AddCardForm onChanged={refresh} onSaved={onSaved} /> : null}
+          </>
+        )}
+      </div>
     </section>
   );
 }

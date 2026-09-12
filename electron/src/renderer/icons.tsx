@@ -31,6 +31,8 @@ export type IconName =
   | "chevron-down"
   | "plus"
   | "play"
+  | "stop"
+  | "quiz"
   | "external";
 
 const PATHS: Record<IconName, string> = {
@@ -58,6 +60,8 @@ const PATHS: Record<IconName, string> = {
   "chevron-down": "M6 9l6 6 6-6",
   plus: "M12 5v14M5 12h14",
   play: "M7 4l12 8-12 8z",
+  stop: "M7 7h10v10H7z",
+  quiz: "M6 4h12v16H6zM9.5 9.5a2.5 2.5 0 0 1 5 .3c0 1.4-2.5 1.4-2.5 2.7M12 15.5v.5",
   external: "M14 4h6v6M20 4l-9 9M18 14v6H4V6h6",
 };
 

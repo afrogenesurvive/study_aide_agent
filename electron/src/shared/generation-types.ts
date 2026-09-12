@@ -8,6 +8,8 @@
  * it, so it lives beside the runner in `agent-runner/protocol.ts`.
  */
 
+import type { TopicStatus } from "./syllabus-types";
+
 /**
  * Lifecycle of one run.
  *
@@ -82,8 +84,6 @@ export interface GenerationRequest {
   section?: string | null;
   /** Overrides `GENERATION_MAX_CARDS_PER_TOPIC` for this run. */
   maxCardsPerTopic?: number;
-  /** Skip the review gate and write straight through. Off by default. */
-  autoCommit?: boolean;
 }
 
 /** One topic handed to the child as work. */
@@ -174,11 +174,85 @@ export interface GenerationProgress {
   done: boolean;
 }
 
-export interface GenerationRunResult {
-  jobId: number;
-  status: GenerationStatus;
+/**
+ * The outcome of asking for a run.
+ *
+ * `jobId` is null when the request was refused before a job was created — an
+ * unconfigured provider, a pipeline with no generation step, a scope that
+ * matched nothing. Those are answers, not errors, so they come back in the same
+ * shape as a failed run rather than being thrown.
+ */
+export interface GenerationRunOutcome {
+  ok: boolean;
+  jobId: number | null;
+  status: GenerationStatus | null;
   cards: number;
   questions: number;
   warnings: string[];
+  errors: string[];
+}
+
+/**
+ * Whether a run could start right now, and what is missing if not.
+ *
+ * The Generate panel asks for this on load so it can disable Run and name the
+ * setting to fix, rather than letting the user click through to a failure. It
+ * deliberately reports the *reasons* rather than a bare boolean: "the pipeline
+ * config has no material-generation pipeline" and "no API key" need different
+ * answers from the user.
+ */
+export interface GenerationStatusPayload {
+  /** `AGENT_RUNNER_ENABLED` in Settings. */
+  enabled: boolean;
+  provider: string;
+  model: string | null;
+  /** The model layer would accept a call (a key is present, or none is needed). */
+  ready: boolean;
+  /** Settings that must be filled in before a call would succeed. */
+  missing: string[];
+  /** The pipeline config describes a pipeline that could actually run. */
+  configOk: boolean;
+  configErrors: string[];
+  configWarnings: string[];
+  /** A run is in flight right now. */
+  running: boolean;
+  activeJobId: number | null;
+  /** Runs parked at the review gate. */
+  awaitingReview: number;
+}
+
+/** One topic a run could cover, for the scope picker. */
+export interface GenerationTopicOption {
+  id: number;
+  code: string;
+  title: string;
+  section: string | null;
+  status: TopicStatus;
+  /** Cross-subject themes this topic participates in; shown, not chosen. */
+  themes: string[];
+}
+
+/** A job plus its candidates, for the review step. */
+export interface GenerationJobDetail {
+  summary: GenerationJobSummary;
+  /** What was asked for, as stored with the job when it was created. */
+  input: GenerationJobInput | null;
+  output: GenerationOutput;
+}
+
+/** Outcome of saving the candidates the gate was showing. */
+export interface GenerationCommitResult {
+  success: boolean;
+  cards: number;
+  quizzes: number;
+  questions: number;
+  /** Saved, but not exactly as asked: an unresolvable topic code, a skipped bucket. */
+  warnings: string[];
+  error?: string;
+}
+
+/** Outcome of answering the gate, or stopping a run that is still going. */
+export interface GenerationActionResult {
+  success: boolean;
   error?: string;
 }

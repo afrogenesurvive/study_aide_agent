@@ -61,6 +61,7 @@ export const KNOWN_PLACEHOLDERS = new Set([
   "section",
   "overlayThemes",
   "maxCards",
+  "questionCount",
   "topicList",
   "topicCount",
   "syllabusIds",

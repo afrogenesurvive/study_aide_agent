@@ -8,10 +8,13 @@ import {
 import { addLog, setLogLevel, subscribe, unsubscribeAll } from "./logger";
 import { isDev, devServerUrl, preloadPath, rendererIndexPath, studyDbPath, dataDir } from "./paths";
 import { registerAllIpc } from "./ipc";
+import { setGenerationProgressSink } from "./ipc/generation.ipc";
 import { closeDb, getDb, initDatabase } from "../../services/database";
+import { markStaleJobsFailed } from "../../services/generation";
 import { seedOverlayMapFile } from "../../services/scheduler/overlay";
 import { initAgentConfigDir } from "./agent-config";
 import { registerSharedModules } from "./llm";
+import { initRunner, killActiveRun } from "./runner";
 import type { LogEntry } from "../shared/ipc-types";
 
 /**
@@ -144,10 +147,20 @@ app.whenReady().then(() => {
 
   registerAllIpc();
   registerSharedModules();
+  // Created once at boot so the single-run guard exists before any window can ask
+  // for a run; it spawns nothing until a pipeline is actually started.
+  initRunner();
 
   const dbStatus = initDatabase(studyDbPath(), (level, message) => addLog("db", level, message));
   if (!dbStatus.ok) {
     addLog("db", "error", `Database unavailable: ${dbStatus.error ?? "unknown error"}`);
+  } else {
+    // A run's work happens in a child process, so a crash or a force-quit can
+    // leave a job marked `running` with nothing left alive to finish it.
+    const stale = markStaleJobsFailed(getDb());
+    if (stale > 0) {
+      addLog("generate", "info", `Marked ${stale} interrupted generation run(s) as failed.`);
+    }
   }
 
   const agentConfig = initAgentConfigDir();
@@ -178,6 +191,11 @@ app.whenReady().then(() => {
   const unsubscribe = pipeLogsToRenderer();
 
   mainWindow = createWindow();
+  // Late-bound, like the log bridge: the sink is only ever called while a run is
+  // in flight, which is long after the window exists.
+  setGenerationProgressSink((progress) =>
+    mainWindow?.webContents.send("generation:progress", progress),
+  );
 
   // Native notification channel, used from phase 5 onwards.
   ipcMain.handle("notification:show", (_event, title: string, body: string) => {
@@ -195,6 +213,9 @@ app.whenReady().then(() => {
     isQuitting = true;
     unsubscribe();
     unsubscribeAll();
+    // Synchronous and best-effort: the run is signalled here and the database is
+    // closed immediately afterwards rather than waiting for the child to exit.
+    killActiveRun();
     closeDb((level, message) => addLog("db", level, message));
   });
 });

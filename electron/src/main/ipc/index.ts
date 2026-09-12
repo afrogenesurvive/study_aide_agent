@@ -2,7 +2,9 @@ import { registerAgentConfigIpc } from "./agent-config.ipc";
 import { registerAppIpc } from "./app.ipc";
 import { registerConfigIpc } from "./config.ipc";
 import { registerDatabaseIpc } from "./database.ipc";
+import { registerGenerationIpc } from "./generation.ipc";
 import { registerLogsIpc } from "./logs.ipc";
+import { registerQuizIpc } from "./quiz.ipc";
 import { registerReviewIpc } from "./review.ipc";
 import { registerSchedulerIpc } from "./scheduler.ipc";
 import { registerSyllabusIpc } from "./syllabus.ipc";
@@ -24,5 +26,7 @@ export function registerAllIpc(): void {
   registerAgentConfigIpc();
   registerSyllabusIpc();
   registerReviewIpc();
+  registerQuizIpc();
+  registerGenerationIpc();
   registerSchedulerIpc();
 }

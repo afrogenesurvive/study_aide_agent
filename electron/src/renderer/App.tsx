@@ -6,6 +6,7 @@ import { AppearancePanel } from "./components/AppearancePanel";
 import { ConfigPanel } from "./components/ConfigPanel";
 import { DashboardPanel } from "./components/DashboardPanel";
 import { DevPanel } from "./components/DevPanel";
+import { GeneratePanel } from "./components/generate/GeneratePanel";
 import { ReviewPanel } from "./components/review/ReviewPanel";
 import { SessionPanel } from "./components/session/SessionPanel";
 import { StoragePanel } from "./components/StoragePanel";
@@ -170,12 +171,7 @@ export default function App() {
           {panel === "syllabus" ? <SyllabusPanel onSaved={(message) => notify(message)} /> : null}
 
           {panel === "generate" ? (
-            <Placeholder
-              title="Generate"
-              icon="generate"
-              phase="Phase 3"
-              description="Syllabus-grounded flashcard and quiz generation, with a review gate before anything is saved."
-            />
+            <GeneratePanel onSaved={(message) => notify(message)} />
           ) : null}
 
           {panel === "review" ? <ReviewPanel onSaved={(message) => notify(message)} /> : null}

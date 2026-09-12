@@ -52,6 +52,19 @@ import type {
   StudySessionRow,
   TodaySummary,
 } from "../shared/scheduler-types";
+import type {
+  GenerationActionResult,
+  GenerationCommitResult,
+  GenerationJobDetail,
+  GenerationJobSummary,
+  GenerationOutput,
+  GenerationProgress,
+  GenerationRequest,
+  GenerationRunOutcome,
+  GenerationStatusPayload,
+  GenerationTopicOption,
+} from "../shared/generation-types";
+import type { QuizAnswer, QuizAttemptResult, QuizDetail, QuizSummary } from "../shared/quiz-types";
 
 /**
  * Hand-maintained mirror of `src/main/preload.ts`.
@@ -209,6 +222,26 @@ export interface ElectronAPI {
   getSession(sessionId: number): Promise<StudySessionRow | null>;
   getSessionReviews(sessionId: number): Promise<CardReviewRow[]>;
   getSessionReviewCount(sessionId: number): Promise<number>;
+
+  getGenerationStatus(): Promise<GenerationStatusPayload>;
+  listGenerationSyllabi(): Promise<SyllabusSummary[]>;
+  getGenerationTopics(syllabusId: number): Promise<GenerationTopicOption[]>;
+  startGeneration(request: GenerationRequest): Promise<GenerationRunOutcome>;
+  cancelGeneration(jobId: number): Promise<GenerationActionResult>;
+  getGenerationJob(jobId: number): Promise<GenerationJobDetail | null>;
+  commitGeneration(jobId: number, output: GenerationOutput): Promise<GenerationCommitResult>;
+  rejectGeneration(jobId: number): Promise<GenerationActionResult>;
+  discardGeneration(jobId: number): Promise<GenerationActionResult>;
+  getGenerationHistory(): Promise<GenerationJobSummary[]>;
+  onGenerationProgress(callback: (progress: GenerationProgress) => void): () => void;
+
+  listQuizzes(options?: {
+    includeArchived?: boolean;
+    topicId?: number;
+    limit?: number;
+  }): Promise<QuizSummary[]>;
+  getQuiz(quizId: number): Promise<QuizDetail | null>;
+  recordQuizAttempt(quizId: number, answers: QuizAnswer[]): Promise<QuizAttemptResult>;
 
   showNotification(title: string, body: string): Promise<boolean>;
   onNotification(callback: (payload: { title: string; body: string }) => void): () => void;

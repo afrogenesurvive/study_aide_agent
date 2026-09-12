@@ -134,6 +134,29 @@ export function deleteJob(db: Database, id: number): boolean {
   return Number(result.changes) > 0;
 }
 
+/**
+ * Fail everything that was still in flight when the app stopped.
+ *
+ * A run's work happens in a child process, so a crash or a force-quit leaves its
+ * row `pending` or `running` with nothing left alive to finish it. Called once at
+ * boot: a single statement rather than a read-modify-write loop, so it cannot
+ * leave the table half-cleaned, and it deliberately does not touch a job sitting
+ * at the review gate — those candidates are still perfectly good.
+ */
+export function markStaleFailed(db: Database, now: Date = new Date()): number {
+  const stamp = isoOf(now);
+  const result = db
+    .prepare(
+      `UPDATE generation_jobs
+          SET status = 'failed',
+              error = COALESCE(error, ?),
+              updated_at = ?
+        WHERE status IN ('pending', 'running')`,
+    )
+    .run("The app stopped before this run finished.", stamp);
+  return Number(result.changes);
+}
+
 // ── reads ────────────────────────────────────────────────────────────────────
 
 export function getJob(db: Database, id: number): GenerationJobRow | null {
