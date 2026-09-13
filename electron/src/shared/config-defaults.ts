@@ -180,6 +180,25 @@ export function checkConfigValues(config: AppConfig): ConfigCheckResult {
     warnings.push("GENERATION_TEMPERATURE must be between 0 and 2; 0.4 will be used instead.");
   }
 
+  // Google is advisory, never required. Every other setting still works without
+  // it, so a missing token must not gate generation the way a missing provider
+  // key does — which is why these keys are absent from `requiredKeys`.
+  const googleKeys = ["GMAIL_CLIENT_ID", "GMAIL_CLIENT_SECRET", "GMAIL_REFRESH_TOKEN"] as const;
+  const googleMissing = googleKeys.filter((key) => !String(config[key] ?? "").trim());
+  if (googleMissing.length > 0 && googleMissing.length < googleKeys.length) {
+    // Wholly unconfigured is the normal first-run state and not worth a warning;
+    // *partly* configured is a half-finished setup and always is.
+    warnings.push(
+      `Google is partly configured — ${googleMissing.join(", ")} still missing. Reminders and calendar sync will not work until it is connected.`,
+    );
+  }
+  const calendarId = String(config.GOOGLE_CALENDAR_ID ?? "").trim();
+  if (googleMissing.length === googleKeys.length && calendarId && calendarId !== "primary") {
+    warnings.push(
+      "GOOGLE_CALENDAR_ID names a calendar but no Google credentials are set — the name will be ignored.",
+    );
+  }
+
   return { ok: missing.length === 0, missing, warnings, activeProvider: provider };
 }
 

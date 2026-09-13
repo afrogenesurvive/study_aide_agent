@@ -3,6 +3,7 @@ import { registerAppIpc } from "./app.ipc";
 import { registerConfigIpc } from "./config.ipc";
 import { registerDatabaseIpc } from "./database.ipc";
 import { registerGenerationIpc } from "./generation.ipc";
+import { registerGoogleIpc } from "./google.ipc";
 import { registerLogsIpc } from "./logs.ipc";
 import { registerQuizIpc } from "./quiz.ipc";
 import { registerReviewIpc } from "./review.ipc";
@@ -29,4 +30,5 @@ export function registerAllIpc(): void {
   registerQuizIpc();
   registerGenerationIpc();
   registerSchedulerIpc();
+  registerGoogleIpc();
 }

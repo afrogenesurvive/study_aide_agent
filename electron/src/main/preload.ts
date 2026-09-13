@@ -66,6 +66,12 @@ import type {
   GenerationTopicOption,
 } from "../shared/generation-types";
 import type { QuizAnswer, QuizAttemptResult, QuizDetail, QuizSummary } from "../shared/quiz-types";
+import type {
+  GoogleActionResult,
+  GoogleConnectResult,
+  GoogleStatusPayload,
+  GoogleTestResult,
+} from "../shared/google-types";
 
 /**
  * The entire renderer-facing surface.
@@ -315,6 +321,16 @@ const api = {
     ipcRenderer.invoke("quiz:get", quizId),
   recordQuizAttempt: (quizId: number, answers: QuizAnswer[]): Promise<QuizAttemptResult> =>
     ipcRenderer.invoke("quiz:record", quizId, answers),
+
+  // ── google ──
+  getGoogleStatus: (): Promise<GoogleStatusPayload> => ipcRenderer.invoke("google:status"),
+  testGoogle: (): Promise<GoogleTestResult | GoogleActionResult> => ipcRenderer.invoke("google:test"),
+  connectGoogle: (): Promise<GoogleConnectResult> => ipcRenderer.invoke("google:connect"),
+  cancelGoogleConnect: (): Promise<GoogleActionResult> => ipcRenderer.invoke("google:cancel"),
+  refreshGoogleCalendars: (): Promise<GoogleActionResult> =>
+    ipcRenderer.invoke("google:refreshCalendars"),
+  restartGoogleServers: (): Promise<GoogleActionResult> =>
+    ipcRenderer.invoke("google:restartServers"),
 
   // ── notifications ──
   showNotification: (title: string, body: string): Promise<boolean> =>

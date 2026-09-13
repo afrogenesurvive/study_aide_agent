@@ -18,6 +18,13 @@ export interface PipelineStep {
   hintTemplate: string;
   enabled: boolean;
   isTerminal: boolean;
+  /**
+   * Arguments for a main-process tool, with `{{placeholder}}` values.
+   *
+   * A model call gets its input from the rendered prompt; a tool that is *not* a
+   * model call has nowhere else to get it. Empty for child and gate steps.
+   */
+  args: Record<string, unknown>;
 }
 
 export interface PipelineDefinition {
@@ -65,6 +72,9 @@ export const KNOWN_PLACEHOLDERS = new Set([
   "topicList",
   "topicCount",
   "syllabusIds",
+  // The pretty-printed results of the `pre` Google steps, so a pipeline can
+  // ground a digest in what is actually on the calendar and in the mailbox.
+  "toolContext",
 ]);
 
 // ── parsing ──────────────────────────────────────────────────────────────────
@@ -146,6 +156,7 @@ function parsePipeline(raw: unknown, warnings: string[]): PipelineDefinition | n
       // Default to enabled: a missing flag should not silently drop a step.
       enabled: step.enabled !== false,
       isTerminal: step.isTerminal === true,
+      args: parseStepArgs(step, name, index, warnings),
     });
   }
 
@@ -155,6 +166,28 @@ function parsePipeline(raw: unknown, warnings: string[]): PipelineDefinition | n
     description: typeof value.description === "string" ? value.description : "",
     steps,
   };
+}
+
+/**
+ * A step's `args`, which must be a plain object.
+ *
+ * A non-object is dropped with a warning rather than coerced: a step whose
+ * arguments have the wrong shape should show up in validation output, not be sent
+ * to Google as nonsense.
+ */
+function parseStepArgs(
+  step: Record<string, unknown>,
+  pipeline: string,
+  index: number,
+  warnings: string[],
+): Record<string, unknown> {
+  const value = step.args;
+  if (value === undefined || value === null) return {};
+  if (typeof value !== "object" || Array.isArray(value)) {
+    warnings.push(`Pipeline "${pipeline}" step #${index} has a non-object \`args\`; it was ignored.`);
+    return {};
+  }
+  return { ...(value as Record<string, unknown>) };
 }
 
 export function selectPipeline(file: PipelineFile, name: string): PipelineDefinition | null {

@@ -70,6 +70,13 @@ export interface BuildUnitsOptions {
   maxCardsPerTopic: number;
   /** Global grounding prompt from `agent-config/system-prompt.md`. */
   systemPrompt: string;
+  /**
+   * Results of the `pre` Google steps, rendered by `dispatch.ts`.
+   *
+   * Empty when a pipeline declares no Google reads, which is the shipped case, so
+   * `{{toolContext}}` is only ever present on purpose.
+   */
+  context?: string;
 }
 
 export interface BuildUnitsResult {
@@ -153,5 +160,8 @@ function templateVars(
     topicList: topics.map((entry) => `${entry.code} ${entry.title}`).join("; "),
     topicCount: topics.length,
     syllabusIds: syllabusIds.join(", "),
+    // Interpolated as `{{toolContext}}`; blank rather than "undefined" so a
+    // template that references it stays readable when there is nothing to add.
+    toolContext: options.context?.trim() || "",
   };
 }

@@ -58,6 +58,10 @@
         "to": "shared"
       },
       {
+        "from": "../mcp",
+        "to": "mcp"
+      },
+      {
         "from": "../agent-config",
         "to": "agent-config"
       },

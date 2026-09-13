@@ -13,6 +13,7 @@
     "build": "npm --prefix electron run build",
     "start": "npm --prefix electron run start",
     "test": "npm --prefix electron run test",
-    "types": "npm --prefix electron run types"
+    "types": "npm --prefix electron run types",
+    "gmail-auth": "node scripts/gmail-auth.mjs"
   }
 }

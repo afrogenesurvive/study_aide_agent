@@ -3,7 +3,14 @@
   "max_retries": 3,
   "retry_base_delay_ms": 4000,
   "llm_context_window": 0,
-  "terminal_tools": ["gmail_send_message", "calendar_create_event", "materials_save"],
+  "terminal_tools": [
+    "gmail_send_message",
+    "calendar_create_event",
+    "calendar_update_event",
+    "calendar_create_task",
+    "calendar_update_task",
+    "materials_save"
+  ],
   "pipelines": [
     {
       "name": "material-generation",

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "../icons";
+import { GoogleActions } from "./GoogleActions";
 import type { ConfigCheckResult, ConfigSourcesPayload } from "../../shared/ipc-types";
 
 interface FieldSpec {
@@ -15,6 +16,14 @@ interface GroupSpec {
   title: string;
   note?: string;
   fields: FieldSpec[];
+  /**
+   * Marks a group that needs controls as well as fields.
+   *
+   * A field grid has no natural place for a button that *does* something, so a
+   * group needing one names a component here rather than growing a new field
+   * type.
+   */
+  action?: "google";
 }
 
 const GROUPS: GroupSpec[] = [
@@ -41,13 +50,14 @@ const GROUPS: GroupSpec[] = [
   {
     id: "google",
     title: "Google (Gmail + Calendar + Tasks)",
-    note: "One OAuth2 refresh token covers all three APIs. Wired up in phase 4.",
+    note: "One OAuth2 refresh token covers all three APIs. Connect below, or paste the values produced by `npm run gmail-auth`.",
+    action: "google",
     fields: [
       { key: "GMAIL_CLIENT_ID", label: "OAuth client id", type: "password" },
       { key: "GMAIL_CLIENT_SECRET", label: "OAuth client secret", type: "password" },
       { key: "GMAIL_REFRESH_TOKEN", label: "Refresh token", type: "password" },
       { key: "GMAIL_USER", label: "Send as", hint: "Usually `me`." },
-      { key: "GOOGLE_CALENDAR_ID", label: "Calendar", hint: "`primary` or a calendar name." },
+      { key: "GOOGLE_CALENDAR_ID", label: "Calendar", hint: "`primary`, a calendar name, or an id." },
     ],
   },
   {
@@ -251,6 +261,7 @@ export function ConfigPanel({
                 />
               ))}
             </div>
+            {group.action === "google" ? <GoogleActions onSaved={onSaved} /> : null}
           </fieldset>
         ))}
       </div>

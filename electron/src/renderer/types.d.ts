@@ -65,6 +65,12 @@ import type {
   GenerationTopicOption,
 } from "../shared/generation-types";
 import type { QuizAnswer, QuizAttemptResult, QuizDetail, QuizSummary } from "../shared/quiz-types";
+import type {
+  GoogleActionResult,
+  GoogleConnectResult,
+  GoogleStatusPayload,
+  GoogleTestResult,
+} from "../shared/google-types";
 
 /**
  * Hand-maintained mirror of `src/main/preload.ts`.
@@ -245,6 +251,13 @@ export interface ElectronAPI {
 
   showNotification(title: string, body: string): Promise<boolean>;
   onNotification(callback: (payload: { title: string; body: string }) => void): () => void;
+
+  getGoogleStatus(): Promise<GoogleStatusPayload>;
+  testGoogle(): Promise<GoogleTestResult | GoogleActionResult>;
+  connectGoogle(): Promise<GoogleConnectResult>;
+  cancelGoogleConnect(): Promise<GoogleActionResult>;
+  refreshGoogleCalendars(): Promise<GoogleActionResult>;
+  restartGoogleServers(): Promise<GoogleActionResult>;
 
   getPathForFile(file: File): string;
 }

@@ -3,6 +3,51 @@
 Version scheme: `<package.json version>-<n>`, incrementing per wrap-up on the
 current branch. Newest first.
 
+> Note: `[0.0.2-2]` currently appears below `[0.0.2-1]` rather than above it. The
+> entries are otherwise newest-first; this is left as-is rather than reordering
+> published history.
+
+---
+
+## [0.0.2-3] — 2026-09-12
+
+Phase 4 (Gmail + Calendar + Tasks). **Nothing has been sent, read or created
+against a real Google account yet** — the plumbing is in place and tested, but the
+live calls are unverified.
+
+- The app can now connect to Google. **Settings → Google** gains a **Connect
+  Google** button that opens your browser, asks for the narrowest set of
+  permissions the app actually uses, and stores the result for you. There is also
+  **Test connection**, which makes one cheap real call to each service and reports
+  the outcome per service, and **Refresh calendars**.
+- The same flow is available from a terminal with `npm run gmail-auth`, which
+  prints a refresh token you can paste into Settings instead. Its output never
+  includes the client secret.
+- Google access runs through two small helper processes the app starts on demand
+  and stops when you quit. They only start when something actually needs Google,
+  so an app that never touches it starts nothing extra.
+- Both processes take their settings from the app, and **switching accounts or
+  tokens takes effect on the next action** rather than needing a restart.
+- **Friendly calendar names.** Set `GOOGLE_CALENDAR_ID` to a calendar's name
+  rather than its id, and Refresh calendars writes the name-to-id mapping. Before
+  the first refresh, an id or `primary` works as before.
+- **Twelve Google tools are available to pipelines**: search and read mail, send
+  mail, list and read calendars and events, create and update events, and list,
+  create and update Google Tasks.
+- **Every tool that changes something on Google now sits behind the review gate** —
+  sending mail, and creating or updating an event or a task. This corrects an
+  inconsistency where creating a Google Task was treated as reversible.
+- Settings gained warnings for a **partly configured** Google setup, such as a
+  client id with no refresh token. Google remains optional: nothing else in the
+  app stops working without it.
+- Text arriving from Google — email bodies, event descriptions — is now scrubbed
+  both as plain text and **inside structured data**, and characters that are
+  invisible on screen but visible to a language model are removed. This was
+  previously promised but not actually implemented.
+- Settings → Configuration shows which values came from `config.json`, the
+  environment, or the built-in defaults, as before; the Google credentials are
+  masked and are never sent to the interface layer.
+
 ---
 
 ## [0.0.2-1] — 2026-09-12

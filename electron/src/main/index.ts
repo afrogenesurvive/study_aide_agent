@@ -15,6 +15,7 @@ import { seedOverlayMapFile } from "../../services/scheduler/overlay";
 import { initAgentConfigDir } from "./agent-config";
 import { registerSharedModules } from "./llm";
 import { initRunner, killActiveRun } from "./runner";
+import { initMcp, stopMcp } from "./mcp";
 import type { LogEntry } from "../shared/ipc-types";
 
 /**
@@ -150,6 +151,9 @@ app.whenReady().then(() => {
   // Created once at boot so the single-run guard exists before any window can ask
   // for a run; it spawns nothing until a pipeline is actually started.
   initRunner();
+  // Like the runner, this spawns nothing yet: an MCP server starts on the first
+  // Google tool call, so an app that never touches Google starts no children.
+  initMcp();
 
   const dbStatus = initDatabase(studyDbPath(), (level, message) => addLog("db", level, message));
   if (!dbStatus.ok) {
@@ -216,6 +220,9 @@ app.whenReady().then(() => {
     // Synchronous and best-effort: the run is signalled here and the database is
     // closed immediately afterwards rather than waiting for the child to exit.
     killActiveRun();
+    // Also best-effort, and deliberately not awaited: closing a child ends its
+    // stdin and falls back to SIGTERM then SIGKILL, which `close()` bounds itself.
+    void stopMcp();
     closeDb((level, message) => addLog("db", level, message));
   });
 });

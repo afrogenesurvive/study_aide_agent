@@ -145,7 +145,7 @@ A model with no known rate is shown with no cost at all. A zero would read as
 npm run types && npm test && npm run build
 ```
 
-Current expected: 3 TypeScript projects clean, 561 tests across 27 files.
+Current expected: 3 TypeScript projects clean, 670 tests across 33 files.
 
 Then launch the app and check the Developer panel: you should see a startup line,
 a configuration line, and a `Database ready` line reporting the schema version,
@@ -164,6 +164,35 @@ With no API key configured, a run stops before it starts and names the setting
 that is missing. That is the honest end of the path without a provider: the model
 calls themselves are covered by tests against a stand-in, not by a live run.
 
+### Checking the Google servers without credentials
+
+The Gmail and Calendar helpers are ordinary stdio programs and can be driven by
+hand. Both complete a full handshake with nothing configured:
+
+```bash
+printf '%s\n' \
+  '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"smoke","version":"1"}}}' \
+  '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+  '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' > /tmp/mcp-smoke.ndjson
+
+node mcp/gmail/index.js    < /tmp/mcp-smoke.ndjson
+node mcp/calendar/index.js < /tmp/mcp-smoke.ndjson
+```
+
+Each should exit cleanly, print a result listing **3 tools** (Gmail) or **9**
+(Calendar/Tasks), and print nothing to stdout except the protocol messages. Add a
+`tools/call` line and an unconfigured install answers with a readable
+`isError: true` message rather than a protocol error.
+
+Each server keeps its own dependencies, so run `npm install` in `mcp/gmail` and
+`mcp/calendar` after a fresh clone. Those directories are gitignored.
+
+### Connecting Google without the app
+
+`npm run gmail-auth` runs the same consent flow the Settings button uses, opens
+your browser, and prints a refresh token to paste into Settings → Google. It
+never prints the client secret.
+
 ## Current limitations
 
 - macOS is the only platform this has been exercised on. Windows and Linux paths
@@ -176,3 +205,11 @@ calls themselves are covered by tests against a stand-in, not by a live run.
   provider's key check.
 - The cost figures described above have never been reconciled against a real
   provider bill.
+- **No Google call has been made against the live API.** Connecting an account,
+  reading a message, creating an event and sending mail are all wired up and
+  covered by tests against stand-ins, but none of them has been run for real. The
+  consent flow in particular depends on an OAuth client you create yourself in
+  Google Cloud Console.
+- The packaged build has not been exercised since the Google helpers were added.
+  They ship their own dependencies, and the first **Test connection** in a
+  packaged app is what would prove that tree resolves.

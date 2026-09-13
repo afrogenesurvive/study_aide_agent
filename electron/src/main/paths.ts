@@ -66,6 +66,23 @@ export function sharedDir(...segments: string[]): string {
   return resourcePath("shared", ...segments);
 }
 
+/**
+ * An MCP server's entry point.
+ *
+ * `mcp/` sits alongside `shared/` in the resources directory so both resolve the
+ * same way in dev and packaged builds. Note that it must be listed in
+ * `extraResources` — including each server's own `node_modules`, because the
+ * servers depend on the MCP SDK.
+ */
+export function mcpServerPath(server: string, ...segments: string[]): string {
+  return resourcePath("mcp", server, ...segments);
+}
+
+/** The staged `mcp/` tree, for a status readout. */
+export function mcpDir(...segments: string[]): string {
+  return resourcePath("mcp", ...segments);
+}
+
 export function preloadPath(): string {
   return path.join(__dirname, "preload.js");
 }

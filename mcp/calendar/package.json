@@ -1,0 +1,14 @@
+{
+  "name": "study-aide-calendar-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Google Calendar and Tasks MCP server for Study Aide — events, calendars and tasks over stdio",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0"
+  }
+}

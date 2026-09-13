@@ -234,6 +234,31 @@
   color: var(--text-muted);
 }
 
+/* ── config group actions ──
+   Controls that belong to a field group but are not fields: the Google group's
+   connect / test / refresh buttons. Sits under the field grid so it reads as part
+   of the same group. */
+.google-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.google-actions__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.google-actions .notice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .toolbar {
   display: flex;
   align-items: center;

@@ -116,7 +116,9 @@ describe("resolveScope", () => {
 
   it("reports an empty syllabus as an error", () => {
     const empty = syllabusRepo.createSyllabus(db, {
-      subject: "physics",
+      // A subject this suite has not already seeded: `syllabus` is unique on
+      // subject + board + level.
+      subject: "math",
       board: "cambridge",
       level: "a-level",
     });
@@ -134,7 +136,7 @@ describe("resolveScope", () => {
   });
 
   it("skips archived topics", () => {
-    const { topicIds } = seedSyllabus(db, "physics", ["4.1"]);
+    const { topicIds } = seedSyllabus(db, "math", ["4.1"]);
     syllabusRepo.archiveTopic(db, topicIds[0]);
     const result = resolveScope(db, request({ syllabusIds: [chemistry] }));
     expect(result.topics.map((topic) => topic.code)).not.toContain("4.1");

@@ -1,0 +1,14 @@
+{
+  "name": "study-aide-gmail-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Gmail MCP server for Study Aide — search, read and send mail over stdio",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0"
+  }
+}

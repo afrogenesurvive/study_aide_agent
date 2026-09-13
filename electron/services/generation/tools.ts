@@ -26,12 +26,20 @@ export type StepStage =
 export interface ToolExecutor {
   /** Which process runs it. */
   executor: "child" | "main";
-  /** Where it sits in the run. */
+  /** Where it sits in a run. */
   stage: StepStage;
   /** False for tools whose implementation lands in a later phase. */
   available: boolean;
   /** Shown in validation output so the Dev panel can say *why* it is unavailable. */
   note?: string;
+  /**
+   * For a main-process tool that reaches a Google API: which MCP server runs it.
+   *
+   * This is the *only* routing table the app uses — the tool manifest declares
+   * the same mapping for the servers themselves, and a test asserts the two
+   * agree. Absent for every tool that does not call Google.
+   */
+  mcpServer?: "gmail" | "calendar";
 }
 
 const MAIN = "main" as const;
@@ -60,12 +68,29 @@ export const TOOL_EXECUTORS: Record<string, ToolExecutor> = {
   socratic_reply: { executor: CHILD, stage: "work", available: false, note: "lands in phase 6" },
   analytics_weekly_digest: { executor: MAIN, stage: "pre", available: false, note: "lands in phase 6" },
   fsrs_rate_card: { executor: MAIN, stage: "commit", available: false, note: "lands in phase 6" },
-  gmail_list_messages: { executor: MAIN, stage: "pre", available: false, note: "needs the MCP servers (phase 4)" },
-  gmail_get_message: { executor: MAIN, stage: "pre", available: false, note: "needs the MCP servers (phase 4)" },
-  gmail_send_message: { executor: MAIN, stage: "commit", available: false, note: "needs the MCP servers (phase 4)" },
-  calendar_list_events: { executor: MAIN, stage: "pre", available: false, note: "needs the MCP servers (phase 4)" },
-  calendar_create_event: { executor: MAIN, stage: "commit", available: false, note: "needs the MCP servers (phase 4)" },
-  calendar_create_task: { executor: MAIN, stage: "commit", available: false, note: "needs the MCP servers (phase 4)" },
+
+  // ── Google, via the MCP servers (phase 4) ──
+  //
+  // `stage` places the step in a run: reads sit in `pre` so their output can
+  // become prompt context, and every tool that changes remote state sits in
+  // `commit`, which is what puts it behind the review gate (`terminal_tools` in
+  // `pipeline.template.json` lists the same five — `validateAgentConfig` enforces
+  // the pairing in all three places).
+  //
+  // The five mutating tools are terminal because none of them can be undone from
+  // inside the app: there is no delete or unsend tool anywhere in the set.
+  gmail_list_messages: { executor: MAIN, stage: "pre", available: true, mcpServer: "gmail" },
+  gmail_get_message: { executor: MAIN, stage: "pre", available: true, mcpServer: "gmail" },
+  gmail_send_message: { executor: MAIN, stage: "commit", available: true, mcpServer: "gmail" },
+  calendar_list_calendars: { executor: MAIN, stage: "pre", available: true, mcpServer: "calendar" },
+  calendar_list_events: { executor: MAIN, stage: "pre", available: true, mcpServer: "calendar" },
+  calendar_get_event: { executor: MAIN, stage: "pre", available: true, mcpServer: "calendar" },
+  calendar_create_event: { executor: MAIN, stage: "commit", available: true, mcpServer: "calendar" },
+  calendar_update_event: { executor: MAIN, stage: "commit", available: true, mcpServer: "calendar" },
+  calendar_list_tasklists: { executor: MAIN, stage: "pre", available: true, mcpServer: "calendar" },
+  calendar_list_tasks: { executor: MAIN, stage: "pre", available: true, mcpServer: "calendar" },
+  calendar_create_task: { executor: MAIN, stage: "commit", available: true, mcpServer: "calendar" },
+  calendar_update_task: { executor: MAIN, stage: "commit", available: true, mcpServer: "calendar" },
 };
 
 export function executorFor(toolName: string): ToolExecutor | null {

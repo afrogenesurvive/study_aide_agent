@@ -19,11 +19,13 @@ import type {
   GenerationTopicInput,
 } from "../../src/shared/generation-types";
 import { groupQuestionsByTopic } from "./candidates";
+import { runPreTools, type GoogleToolRunner, type ToolOutcome } from "./dispatch";
 import {
   MATERIAL_GENERATION,
   resolveRunPlan,
   selectPipeline,
   type PipelineFile,
+  type PlaceholderVars,
   type RunPlan,
 } from "./pipeline";
 import { resolveGenerationOptions } from "./options";
@@ -44,7 +46,7 @@ import {
 import { resolveScope } from "./scope";
 import type { RunnerTransport } from "./transport";
 import type { ToolDef } from "./tools";
-import { buildUnits } from "./units";
+import { QUESTIONS_PER_TOPIC, buildUnits } from "./units";
 
 /**
  * Orchestration: the one place the pipeline, the scope, the runner and the
@@ -186,6 +188,65 @@ export interface StartGenerationInput {
   plan: RunPlan;
   topics: GenerationTopicInput[];
   systemPrompt: string;
+  /**
+   * When supplied, the plan's `pre` Google steps run before the model calls and
+   * their output becomes `{{toolContext}}` in every rendered prompt.
+   *
+   * Optional so that a pipeline with no Google reads — which is every shipped
+   * pipeline — behaves exactly as it did in phase 3.
+   */
+  google?: GoogleToolRunner;
+}
+
+/**
+ * The placeholders a `pre` Google step can use.
+ *
+ * A pre step runs once for the whole scope rather than once per topic, so the
+ * per-topic placeholders are filled with the joined values instead of a single
+ * topic's.
+ */
+function preVars(topics: GenerationTopicInput[], options: { maxCardsPerTopic: number }): PlaceholderVars {
+  const unique = (values: (string | number)[]): string => [...new Set(values)].join(", ");
+  return {
+    topicCode: topics.map((topic) => topic.code).join(", "),
+    topicTitle: topics.map((topic) => topic.title).join("; "),
+    subject: unique(topics.map((topic) => topic.subject)),
+    section: unique(topics.map((topic) => topic.section ?? "—")),
+    overlayThemes: unique(topics.flatMap((topic) => topic.themes)) || "none",
+    topicList: topics.map((topic) => `${topic.code} ${topic.title}`).join("; "),
+    topicCount: topics.length,
+    syllabusIds: unique(topics.map((topic) => topic.syllabusId)),
+    maxCards: options.maxCardsPerTopic,
+    questionCount: QUESTIONS_PER_TOPIC,
+    // Nothing has been gathered yet while the reads themselves are being walked.
+    toolContext: "",
+  };
+}
+
+/**
+ * Run the plan's `pre` Google reads and collect their context.
+ *
+ * A failure is a warning rather than a refusal: not being able to read the
+ * calendar is no reason to refuse to generate cards.
+ */
+async function collectPreContext(
+  input: StartGenerationInput,
+  options: { maxCardsPerTopic: number },
+  hooks: GenerationHooks,
+): Promise<{ context: string; warnings: string[] }> {
+  if (!input.google) return { context: "", warnings: [] };
+
+  const result = await runPreTools(input.google, input.plan, preVars(input.topics, options), hooks.log);
+  for (const outcome of result.outcomes) {
+    hooks.log?.(outcome.ok ? "info" : "warn", `${outcome.tool}: ${outcome.summary}`);
+  }
+
+  return {
+    context: result.context,
+    warnings: result.outcomes
+      .filter((outcome) => !outcome.ok)
+      .map((outcome) => `${outcome.label}: ${outcome.error ?? "failed"}`),
+  };
 }
 
 /**
@@ -224,13 +285,23 @@ export async function startGeneration(
     maxCardsPerTopic: options.maxCardsPerTopic,
   };
 
+  // Runs before the job row exists: these are reads, and a pipeline that gathers
+  // context should not leave a half-started job behind when a calendar is
+  // unreachable. A failed read is a warning, not a refusal — not being able to
+  // see the calendar is no reason to refuse to generate cards.
+  const pre = await collectPreContext(input, options, hooks);
+
   const jobId = createJob(db, { pipeline: input.plan.pipeline, jobInput }, now);
   markRunning(db, jobId, now);
 
   const built = buildUnits(input.plan, input.topics, {
     maxCardsPerTopic: options.maxCardsPerTopic,
     systemPrompt: input.systemPrompt,
+    context: pre.context,
   });
+  // Both exit paths below read `built.warnings`, so a context-gathering failure
+  // is reported whichever way the run goes.
+  built.warnings.unshift(...pre.warnings);
 
   if (built.units.length === 0) {
     const error = "No work units: the pipeline produced no model calls for this scope.";

@@ -1,10 +1,15 @@
 /**
  * Prompt-injection scrubbing facade (ESM).
  *
- * The committed version is a no-op so the repository stays fully public. If you
- * maintain a private pattern set, add `sanitize.private.mjs` next to this file
- * (gitignored) exporting `sanitize`, `sanitizeObject` and `sanitizeWithAudit`;
- * this facade picks it up automatically and nothing else has to change.
+ * Two layers, matching `electron/services/llm/sanitize.ts`:
+ *
+ *  1. The always-on baseline from `sanitize-core.mjs`. It cannot be disabled —
+ *     `sanitizeObject` runs it even when no private pattern set is installed, so
+ *     a public checkout still scrubs untrusted email and event payloads.
+ *  2. The private pattern set, when one is installed, layered on top of the
+ *     baseline result rather than replacing it. Add `sanitize.private.mjs` next
+ *     to this file (gitignored) exporting `sanitize`, `sanitizeObject` and
+ *     `sanitizeWithAudit`.
  *
  * Every external payload (email bodies, event descriptions, imported syllabus
  * text) should pass through here before it reaches the LLM or the log files.
@@ -12,6 +17,8 @@
  * Lives in `shared/` rather than `scripts/` because it is shipped as a runtime
  * resource — `extraResources` copies `shared/`, but not `scripts/`.
  */
+
+import { scrubObject, scrubObjectWithAudit } from "./sanitize-core.mjs";
 
 const EMPTY_AUDIT = {
   sanitized: "",
@@ -21,16 +28,20 @@ const EMPTY_AUDIT = {
   hadHidden: false,
 };
 
-function noopSanitize(value) {
-  return typeof value === "string" ? value : String(value ?? "");
+function baselineSanitizeObject(value) {
+  return scrubObject(value);
 }
 
-function noopSanitizeObject(value) {
-  return value;
-}
-
-function noopSanitizeWithAudit(value) {
-  return { ...EMPTY_AUDIT, sanitized: noopSanitize(value) };
+function baselineSanitizeWithAudit(value) {
+  const audit = scrubObjectWithAudit(value);
+  return {
+    ...EMPTY_AUDIT,
+    sanitized: audit.sanitized,
+    originalHash: audit.originalHash,
+    injected: audit.injected,
+    patterns: audit.patterns,
+    hadHidden: audit.hadHidden,
+  };
 }
 
 let impl = null;
@@ -51,14 +62,38 @@ async function loadImpl() {
 // Load eagerly but never throw: a missing private module is the normal case.
 await loadImpl();
 
+/**
+ * Scrub one string.
+ *
+ * The fallback is deliberately an identity pass-through, and is *not* the same
+ * shape as the object path below. For text there is already an always-on
+ * baseline — `baseline()` in `services/llm/sanitize.ts` — which runs before this
+ * module is ever consulted, so repeating it here would apply it twice and would
+ * change the phase-3 text path. Use `scrubText` from `sanitize-core.mjs` when you
+ * need standalone text scrubbing with no layer above you.
+ */
 export function sanitize(value) {
-  return impl ? impl.sanitize(value) : noopSanitize(value);
+  if (impl?.sanitize) return impl.sanitize(value);
+  return typeof value === "string" ? value : String(value ?? "");
 }
 
+/**
+ * Scrub an external object payload (a decoded Gmail body, a calendar event).
+ *
+ * The baseline always runs; a private pattern set is layered on top of its
+ * result rather than replacing it, so installing a shallow or broken private
+ * implementation cannot *weaken* the scrub.
+ */
 export function sanitizeObject(value) {
-  return impl ? impl.sanitizeObject(value) : noopSanitizeObject(value);
+  const base = baselineSanitizeObject(value);
+  if (!impl?.sanitizeObject) return base;
+  const refined = impl.sanitizeObject(base);
+  return refined === undefined || refined === null ? base : refined;
 }
 
 export function sanitizeWithAudit(value) {
-  return impl ? impl.sanitizeWithAudit(value) : noopSanitizeWithAudit(value);
+  const base = baselineSanitizeWithAudit(value);
+  if (!impl?.sanitizeWithAudit) return base;
+  const refined = impl.sanitizeWithAudit(value);
+  return refined && typeof refined === "object" ? { ...base, ...refined } : base;
 }

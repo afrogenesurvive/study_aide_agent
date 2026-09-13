@@ -43,6 +43,10 @@
         "description": { "type": "string", "maxLength": 1000 },
         "systemPromptTemplate": { "type": "string", "maxLength": 4000 },
         "hintTemplate": { "type": "string", "maxLength": 1000 },
+        "args": {
+          "type": "object",
+          "description": "Arguments for a main-process tool. String values may contain {{placeholders}}, which are filled from the run's scope. Unused by model-call steps, whose input is the rendered prompt."
+        },
         "enabled": { "type": "boolean" },
         "isTerminal": { "type": "boolean" }
       }
